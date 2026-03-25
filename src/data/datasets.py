@@ -7,7 +7,12 @@ from typing import Literal
 from sklearn.preprocessing import MultiLabelBinarizer
 
 class Full_ECG_DataSet(torch.utils.data.Dataset):
-    def __init__(self, path:str, sampling_rate:Literal[100,400]=100, mode:Literal['train','val','test']='train', target: Literal["sex", "age", "scp"]="scp"):
+
+    def __init__(self, path:str,
+                 sampling_rate:Literal[100,400]=100,
+                 mode:Literal['train','val','test']='train',
+                 target: Literal["sex", "age", "scp"]="scp"):
+
         super().__init__()
 
         self.__test_fold = 10
@@ -58,7 +63,12 @@ class Full_ECG_DataSet(torch.utils.data.Dataset):
         # transform labels to ONEHOT (doing classification)
         y = MultiLabelBinarizer().fit_transform(labels)
 
+        self.X = X
+        self.y = y
 
+    def __len__(self):
+        return len(self.X)
 
-
+    def __getitem__(self, idx):
+        return torch.tensor(self.X[idx], dtype=torch.bfloat16), torch.tensor(self.y[idx], dtype=torch.bfloat16)
 
