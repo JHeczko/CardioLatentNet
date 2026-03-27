@@ -2,11 +2,12 @@ import torch
 import pandas as pd
 import ast
 import wfdb
-import numpy as np
 from typing import Literal
 from sklearn.preprocessing import MultiLabelBinarizer
 import neurokit2 as nk
 from torch.utils.data import DataLoader
+
+import timeit
 
 
 class Hearbeat_ECG_DataSet(torch.utils.data.Dataset):
@@ -109,9 +110,13 @@ class Hearbeat_ECG_DataSet(torch.utils.data.Dataset):
 
 
 if __name__ == '__main__':
-    ds = Hearbeat_ECG_DataSet(path="../../dataset/ptb_xl_test/")
+    time_start = timeit.default_timer()
+
+    ds = Hearbeat_ECG_DataSet(path="../../dataset/ptb_xl/")
     loader = DataLoader(ds, batch_size=10, shuffle=True)
 
-    for x,y in loader:
-        print(x.shape, y.shape)
-    print(len(ds))
+    print(f"Dataset len: {len(ds)}")
+
+    time_end = timeit.default_timer()
+
+    print("Time elapsed:", time_end - time_start)
