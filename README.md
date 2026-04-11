@@ -24,6 +24,10 @@ Wybór publicznego zbioru (np. PTB‑XL) (dostępna wersja już po preprocesingu
 - raport PDF
 - wykresy latent‑space.
 
+[//]: # (- torch: dowolny )
+[//]: # (- cuda: 11.8)
+[//]: # (- python: 3.11)
+
 ## Links
 - [NATURE](https://www.nature.com/articles/s41597-020-0495-6)
 - [PHYSIONET](https://physionet.org/content/ptb-xl/1.0.3/)
