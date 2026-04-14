@@ -4,7 +4,7 @@ from torch import nn
 class Upsampler(nn.Module):
     def __init__(self, hidden_dim, stride = 2, kernel_size=3):
         super().__init__()
-        nn.ConvTranspose1d(
+        self.conv = nn.ConvTranspose1d(
             in_channels=hidden_dim,
             out_channels=hidden_dim,
             stride=stride,
