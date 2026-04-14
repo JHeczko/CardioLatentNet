@@ -1,7 +1,6 @@
-import torch
 from torch import nn
 
-from . import MultiLayerPerceptron
+from src.layers.mlp import MultiLayerPerceptron
 
 
 class EncoderBlock(nn.Module):
