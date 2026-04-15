@@ -1,12 +1,13 @@
 import torch
 from torch import nn
 from torch.nn import functional as F
+from torch.utils.checkpoint import checkpoint
 
 import warnings
 
 import numpy as np
 
-from layers.transformer import EncoderBlock, DecoderBlock
+from layers.blocks import EncoderBlock, DecoderBlock
 from layers.encoding import PositionalEncoding
 from layers.dimension import Upsampler, Downsampler
 
@@ -26,8 +27,11 @@ class TransformerUAEC(nn.Module):
             seq_len (int): Length of the input sequence.
     """
 
-    def __init__(self, blocks, enc_dec_ratio, num_att_heads, input_dim, hidden_dim, seq_len):
+    def __init__(self, blocks, enc_dec_ratio, num_att_heads, input_dim, hidden_dim, seq_len, gradient_checkpointing = False):
         super().__init__()
+
+        self.grad_checkpointing = gradient_checkpointing
+
         self.encoders_per_block = enc_dec_ratio[0]
         self.decoders_per_block = enc_dec_ratio[1]
         num_encoders = blocks*enc_dec_ratio[0]
@@ -64,9 +68,31 @@ class TransformerUAEC(nn.Module):
 
     def _weight_init(self):
         for m in self.modules():
-            if isinstance(m, nn.Linear): pass
-            elif isinstance(m, nn.Embedding): pass
-            elif isinstance(m, nn.LayerNorm): pass
+
+            # --- GATE ---
+            if isinstance(m, nn.Linear) and hasattr(m, 'GATE'):
+                nn.init.xavier_uniform_(m.weight)
+                if m.bias is not None:
+                    nn.init.constant_(m.bias, -1.0)
+
+            # --- LINEAR / EMBEDDING ---
+            elif isinstance(m, (nn.Linear, nn.Embedding)):
+                nn.init.xavier_uniform_(m.weight)
+                if hasattr(m, "bias") and m.bias is not None:
+                    nn.init.zeros_(m.bias)
+
+            # --- CONV ---
+            elif isinstance(m, (nn.Conv1d, nn.ConvTranspose1d)):
+                nn.init.kaiming_normal_(m.weight, nonlinearity='relu')
+                if m.bias is not None:
+                    nn.init.zeros_(m.bias)
+
+            # --- LAYERNORM ---
+            elif isinstance(m, nn.LayerNorm):
+                nn.init.ones_(m.weight)
+                if m.bias is not None:
+                    nn.init.zeros_(m.bias)
+
 
     # INPUT - x = (batch_size, seq_len, channels)
     def forward(self, x):
@@ -93,7 +119,11 @@ class TransformerUAEC(nn.Module):
         # x = (batch_size, seq_len/(num_encoder//2), hidden_dim)
         downsamplers_iter = iter(self.downsamplers)
         for i,encoder_block in enumerate(self.encoders):
-            enc_out = encoder_block(enc_out)
+            if self.grad_checkpointing and self.training:
+                enc_out = torch.utils.checkpoint.checkpoint(encoder_block, enc_out, use_reentrant=False)
+            else:
+                enc_out = encoder_block(enc_out)
+
             if ((i + 1) % self.encoders_per_block == 0):
                 # doing append before downsampling
                 encs.append(enc_out)
@@ -107,8 +137,11 @@ class TransformerUAEC(nn.Module):
         # now we have nicely saved encoders output for U-shape AEC
         encs = list(reversed(encs))
 
+
         # ----- DECODER PASS -----
         # dec_out = (batch_size, seq_len/(num_encoder//2), hidden_dim)
+
+        # adding postion emb
         dec_out = enc_out
         pos = self.dec_pos_emb(dec_out)
         dec_out = dec_out + pos
@@ -117,9 +150,8 @@ class TransformerUAEC(nn.Module):
         dec_out = self.connect_decoder(dec_out, enc_out)
 
         upsamplers_iter = iter(self.upsamplers)
-        upsampler = None
-
         encs_iter = iter(encs)
+        upsampler = None
         enc = None
 
         for i, decoder in enumerate(self.decoders):
@@ -134,15 +166,15 @@ class TransformerUAEC(nn.Module):
 
                 # checking if we match with desired output shape
                 # if we have seq_len dimension mismatch we compress oraz upscale the signal with interpolation
-                if dec_out.shape[1] != enc.shape[1]:
-                    print("MISMATCH")
+                mismatch = dec_out.shape[1] != enc.shape[1]
+                if mismatch:
                     # interpolation operate on (B, channels, seq_len)
                     # dec_out = (B, hidden_dim, seq_len)
                     dec_out = dec_out.transpose(2, 1)
                     # now we have aligned seq_len dimension
                     dec_out = F.interpolate(dec_out, enc.shape[1], mode="linear", align_corners=False)
                     # dec_out = (B, seq_len, hidden_dim)
-                    # bakc to the transformer sizes
+                    # bakc to the blocks sizes
                     dec_out = dec_out.transpose(2, 1)
 
                 # adding position after upsampling
@@ -150,14 +182,17 @@ class TransformerUAEC(nn.Module):
                 dec_out = dec_out + pos
 
             print("Decoder: ", dec_out.shape, enc.shape, end="\n")
-            dec_out = decoder(dec_out, enc)
+
+            if self.grad_checkpointing and self.training:
+                dec_out = torch.utils.checkpoint.checkpoint(decoder, dec_out, enc, use_reentrant=False)
+            else:
+                dec_out = decoder(dec_out, enc)
 
         # after grind
         # dec_out = (batch_size, seq_len, hidden_dim)
 
         # last resort check if somehow sizes are not equal
         if dec_out.shape[1] != starting_shape[1]:
-            print("MISMATCH NA KONCU")
             dec_out = dec_out.transpose(2, 1)
             dec_out = F.interpolate(dec_out, starting_shape[1], mode="linear", align_corners=False)
             dec_out = dec_out.transpose(2, 1)

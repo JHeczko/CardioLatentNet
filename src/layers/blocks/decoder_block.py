@@ -53,8 +53,7 @@ class DecoderBlock(nn.Module):
         # gating mechanizm
         if gating:
             self.gate = nn.Linear(dim_hidden, 1)
-            self.gate.SKIP_INIT = 1
-            nn.init.constant_(self.gate.bias, -1)
+            self.gate.GATE = True
 
     # x = (batch_size, seq_len, dim_hidden)
     # enc_out = (batch_size, compressed_seq_len, dim_hidden)
