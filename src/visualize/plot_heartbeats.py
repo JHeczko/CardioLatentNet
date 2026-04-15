@@ -3,6 +3,32 @@ import numpy as np
 
 # heartbeat = (num_of_heartbeats, seq_len,cannals)
 def plot_heartbeats(heartbeats):
+    """
+        Visualizes ECG signals for multiple heartbeats on a grid of subplots.
+
+        This function automatically arranges the grid, applies distinct colors for each
+        of the 12 leads, and adds a shared legend. All subplots share the X and Y axes
+        for consistent comparison.
+
+        Args:
+            heartbeats (np.ndarray): Input tensor of heartbeat signals with the shape:
+                (num_of_heartbeats, seq_len, channels) or (seq_len, channals) for signle heartbeat
+                where:
+                - num_of_heartbeats: Number of beats to visualize.
+                - seq_len: Length of the temporal sequence (number of samples).
+                - channels: Number of signal channels (expected to be 12 for standard ECG).
+
+        Returns:
+            None: The function displays the plot using matplotlib.pyplot.show().
+
+        Note:
+            - The function expects a 12-channel input format.
+            - The standard 12-lead names ['I', 'II', 'III', 'aVR', 'aVL', 'aVF', 'V1', 'V2', 'V3', 'V4', 'V5', 'V6'] are mapped to the plot colors.
+            - The layout is dynamically calculated based on the number of beats provided.
+        """
+    if len(heartbeats.shape) == 2:
+        heartbeats = [heartbeats]
+
     # heartbeat = (num_of_heartbeats, cannals, seq_len)
     heartbeats = np.transpose(heartbeats, (0, 2, 1))
     n_beats = len(heartbeats)

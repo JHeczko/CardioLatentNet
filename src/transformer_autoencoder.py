@@ -65,27 +65,41 @@ class TransformerUAEC(nn.Module):
         # we have to reverse, cuz it was being added in reversed order
         # now we have nicely saved encoders output for U-shape AEC
         encs = list(reversed(encs))
-        encs_iter = iter(encs)
 
         # ----- DECODER PASS -----
         dec_out = enc_out
-        for i, (decoder, upsampler) in enumerate(zip(self.decoders, self.upsamplers)):
-            print("Decoder: ", dec_out.shape, encs[i].shape, end="\n")
+
+        upsamplers_iter = iter(self.upsamplers)
+        upsampler = None
+
+        encs_iter = iter(encs)
+        for i, decoder in enumerate(self.decoders):
+            # assigning upsampler and encdoing from parallel encoding block
+            if i % self.decoders_per_block == 0:
+                enc = next(encs_iter)
+                upsampler = next(upsamplers_iter)
+
+            print("Decoder: ", dec_out.shape, enc.shape, end="\n")
             # if we have seq_len dimension mismatch we compress oraz upscale the signal with interpolation upsampling
-            if dec_out.shape[1] != encs[i].shape[1]:
+            if dec_out.shape[1] != enc.shape[1]:
                 # interpolation operate on (B, channels, seq_len)
                 # dec_out = (B, hidden_dim, seq_len)
                 dec_out = dec_out.transpose(2, 1)
                 # now we have aligned seq_len dimension
-                dec_out = F.interpolate(dec_out, encs[i].shape[1], mode="linear", align_corners=False)
+                dec_out = F.interpolate(dec_out, enc.shape[1], mode="linear", align_corners=False)
                 # dec_out = (B, seq_len, hidden_dim)
                 # bakc to the transformer sizes
                 dec_out = dec_out.transpose(2, 1)
-            dec_out = decoder(dec_out, encs[i])
-            dec_out = upsampler(dec_out)
+            dec_out = decoder(dec_out, enc)
+
+            # using upsampler and the end of the block
+            if (i+1)%self.decoders_per_block == 0:
+                dec_out = upsampler(dec_out)
+
 
         # last resort check if somehow sizes are not equal
         if dec_out.shape[1] != starting_shape[1]:
+            print("halo")
             dec_out = dec_out.transpose(2, 1)
             dec_out = F.interpolate(dec_out, starting_shape[1], mode="linear", align_corners=False)
             dec_out = dec_out.transpose(2, 1)
@@ -95,7 +109,7 @@ class TransformerUAEC(nn.Module):
         return dec_out
 
 if __name__ == "__main__":
-    model =TransformerUAEC(blocks=4, enc_dec_ratio=(2,1), num_att_heads=2, input_dim=12, hidden_dim=128, seq_len=60)
+    model =TransformerUAEC(blocks=4, enc_dec_ratio=(4,4), num_att_heads=2, input_dim=12, hidden_dim=128, seq_len=60)
 
     x = torch.ones(6, 60, 12)
 

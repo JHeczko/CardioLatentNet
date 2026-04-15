@@ -1,9 +1,30 @@
 import matplotlib.pyplot as plt
-import numpy as np
 
 # this func is craeted for plotting all 12 cannals of ECG seq
 # signal = (cannals, seq_len)
 def plot_full_ecg(signal, title="Full 10 sec, 12 channels ECG sequence"):
+    """
+        Visualizes a standard 12-lead ECG signal in a compact, clinical-style layout.
+
+        The function arranges 12 leads into a 6x2 grid, sharing axes for easy
+        morphological comparison. It uses internal text labels for channel names
+        to maximize plot area and removes redundant frame spines for a clean look.
+
+        Args:
+            signal (np.ndarray): The input ECG data. Expects shape (12, seq_len)
+                or (seq_len, 12).
+            title (str, optional): Main title of the figure. Defaults to
+                "Full 10 sec, 12 channels ECG sequence".
+
+        Returns:
+            None: Displays the generated plot using matplotlib.pyplot.show().
+
+        Note:
+            - The function automatically transposes the input if the shape is (seq_len, 12).
+            - Shared axes (sharex=True, sharey=True) are used to allow precise
+              timing and amplitude comparison across all leads.
+        """
+
     # Upewniamy się, że sygnał ma kształt (12, próbki)
     if signal.shape[0] != 12:
         signal = signal.T

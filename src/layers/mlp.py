@@ -3,6 +3,22 @@ import torch
 
 
 class MultiLayerPerceptron(nn.Module):
+    """Standard Position-wise Feed-Forward Network for Transformer blocks.
+
+        This module performs a two-stage transformation: it expands the input feature
+        dimension to a higher-dimensional space using a linear projection, applies
+        a GELU activation function, and then projects the features back to the
+        original input dimension.
+
+        Args:
+            dim_in (int): The dimension of the input feature space.
+            dim_hidden (int): The expanded dimension of the hidden layer.
+
+        Attributes:
+            l1 (nn.Linear): The first linear layer projecting from dim_in to dim_hidden.
+            gelu (nn.GELU): The activation function applied to the hidden representation.
+            l2 (nn.Linear): The second linear layer projecting back to dim_in.
+        """
     def __init__(self, dim_in, dim_hidden):
         super().__init__()
 
@@ -14,6 +30,15 @@ class MultiLayerPerceptron(nn.Module):
         self.l2.RESIDUAL_INIT = 1
 
     def forward(self, x):
+        """Processes the input tensor through the MLP layers.
+
+                Args:
+                    x (torch.Tensor): The input tensor of shape (batch_size, seq_len, dim_in).
+
+                Returns:
+                    torch.Tensor: The output tensor of shape (batch_size, seq_len, dim_in).
+        """
+
         x = self.l1(x)
         x = self.gelu(x)
         x = self.l2(x)
