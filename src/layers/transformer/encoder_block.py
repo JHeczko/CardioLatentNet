@@ -1,6 +1,6 @@
 from torch import nn
 
-from src.layers.mlp import MultiLayerPerceptron
+from src.layers.mlp import FeedForwardLayer
 
 
 class EncoderBlock(nn.Module):
@@ -19,7 +19,7 @@ class EncoderBlock(nn.Module):
             norm1 (nn.LayerNorm): Layer normalization applied before the attention mechanism.
             norm2 (nn.LayerNorm): Layer normalization applied before the MLP.
             attention (nn.MultiheadAttention): The multi-head attention module.
-            mlp (MultiLayerPerceptron): The feed-forward network processing the attention output.
+            mlp (FeedForwardLayer): The feed-forward network processing the attention output.
             att_dropout (nn.Dropout): Dropout layer applied to the attention output.
             mlp_dropout (nn.Dropout): Dropout layer applied to the MLP output.
     """
@@ -37,7 +37,7 @@ class EncoderBlock(nn.Module):
             batch_first=True
         )
 
-        self.mlp = MultiLayerPerceptron(
+        self.mlp = FeedForwardLayer(
             dim_in=dim_hidden,
             dim_hidden=dim_hidden * 3
         )

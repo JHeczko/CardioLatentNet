@@ -1,7 +1,7 @@
 import torch
 from torch import nn
 
-from src.layers import MultiLayerPerceptron
+from src.layers import FeedForwardLayer
 
 class DecoderBlock(nn.Module):
     """A single decoder block for a U-shaped Transformer architecture.
@@ -19,7 +19,7 @@ class DecoderBlock(nn.Module):
             dropout1, dropout2, dropout3 (nn.Dropout): Regularization layers.
             self_att (nn.MultiheadAttention): Self-attention mechanism for the decoder.
             cross_att (nn.MultiheadAttention): Cross-attention for encoder-decoder fusion.
-            mlp (MultiLayerPerceptron): Feed-forward network for feature refinement.
+            mlp (FeedForwardLayer): Feed-forward network for feature refinement.
     """
     def __init__(self, dim_hidden, num_heads, dropout=0.2):
         super().__init__()
@@ -45,7 +45,7 @@ class DecoderBlock(nn.Module):
             batch_first=True
         )
 
-        self.mlp = MultiLayerPerceptron(dim_in=dim_hidden, dim_hidden=dim_hidden * 3)
+        self.mlp = FeedForwardLayer(dim_in=dim_hidden, dim_hidden=dim_hidden * 3)
 
     # x = (batch_size, seq_len, dim_hidden)
     # enc_out = (batch_size, compressed_seq_len, dim_hidden)
@@ -79,15 +79,3 @@ class DecoderBlock(nn.Module):
         x = x + identity
 
         return x
-
-if __name__ == '__main__':
-    dim_hidden = 128
-
-    att = nn.MultiheadAttention(
-            embed_dim=dim_hidden,
-            num_heads=4,
-            dropout=0.2,
-            batch_first=True)
-
-    x = torch.ones(6, 60, 128)
-    latent = torch.ones(6, 5, 128)

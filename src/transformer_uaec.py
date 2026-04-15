@@ -38,6 +38,15 @@ class TransformerUAEC(nn.Module):
         # ============== FINAL PROJECTION ==============
         self.proj = nn.Linear(hidden_dim, input_dim)
 
+        # ============== WEIGHT INIT ==============
+        self._weight_init()
+
+    def _weight_init(self):
+        for m in self.modules():
+            if isinstance(m, nn.Linear): pass
+            elif isinstance(m, nn.Embedding): pass
+            elif isinstance(m, nn.LayerNorm): pass
+
     # INPUT - x = (batch_size, seq_len, channels)
     def forward(self, x):
         # ----- ENCODER PASS -----
@@ -56,10 +65,12 @@ class TransformerUAEC(nn.Module):
         for i,encoder_block in enumerate(self.encoders):
             enc_out = encoder_block(enc_out)
             if ((i + 1) % self.encoders_per_block == 0):
+                # doing append before downsampling
+                encs.append(enc_out)
+
+                # downsampling
                 downsampler = next(downsamplers_iter)
                 enc_out = downsampler(enc_out)
-                encs.append(enc_out)
-                #print("Ecnoder: ", enc_out.shape, end="\n")
 
         print("Latent space size: ", enc_out.shape)
         # we have to reverse, cuz it was being added in reversed order
@@ -73,6 +84,8 @@ class TransformerUAEC(nn.Module):
         upsampler = None
 
         encs_iter = iter(encs)
+        enc = None
+
         for i, decoder in enumerate(self.decoders):
             # assigning upsampler and encdoing from parallel encoding block
             if i % self.decoders_per_block == 0:
@@ -80,22 +93,23 @@ class TransformerUAEC(nn.Module):
                 upsampler = next(upsamplers_iter)
 
             print("Decoder: ", dec_out.shape, enc.shape, end="\n")
-            # if we have seq_len dimension mismatch we compress oraz upscale the signal with interpolation upsampling
-            if dec_out.shape[1] != enc.shape[1]:
-                # interpolation operate on (B, channels, seq_len)
-                # dec_out = (B, hidden_dim, seq_len)
-                dec_out = dec_out.transpose(2, 1)
-                # now we have aligned seq_len dimension
-                dec_out = F.interpolate(dec_out, enc.shape[1], mode="linear", align_corners=False)
-                # dec_out = (B, seq_len, hidden_dim)
-                # bakc to the transformer sizes
-                dec_out = dec_out.transpose(2, 1)
             dec_out = decoder(dec_out, enc)
 
             # using upsampler and the end of the block
             if (i+1)%self.decoders_per_block == 0:
                 dec_out = upsampler(dec_out)
 
+                # if we have seq_len dimension mismatch we compress oraz upscale the signal with interpolation upsampling
+                if dec_out.shape[1] != enc.shape[1]:
+                    print("MISMATCH")
+                    # interpolation operate on (B, channels, seq_len)
+                    # dec_out = (B, hidden_dim, seq_len)
+                    dec_out = dec_out.transpose(2, 1)
+                    # now we have aligned seq_len dimension
+                    dec_out = F.interpolate(dec_out, enc.shape[1], mode="linear", align_corners=False)
+                    # dec_out = (B, seq_len, hidden_dim)
+                    # bakc to the transformer sizes
+                    dec_out = dec_out.transpose(2, 1)
 
         # last resort check if somehow sizes are not equal
         if dec_out.shape[1] != starting_shape[1]:
@@ -109,7 +123,7 @@ class TransformerUAEC(nn.Module):
         return dec_out
 
 if __name__ == "__main__":
-    model =TransformerUAEC(blocks=4, enc_dec_ratio=(4,4), num_att_heads=2, input_dim=12, hidden_dim=128, seq_len=60)
+    model =TransformerUAEC(blocks=4, enc_dec_ratio=(1,1), num_att_heads=2, input_dim=12, hidden_dim=128, seq_len=60)
 
     x = torch.ones(6, 60, 12)
 

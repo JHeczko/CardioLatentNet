@@ -2,7 +2,7 @@ from torch import nn
 import torch
 
 
-class MultiLayerPerceptron(nn.Module):
+class FeedForwardLayer(nn.Module):
     """Standard Position-wise Feed-Forward Network for Transformer blocks.
 
         This module performs a two-stage transformation: it expands the input feature
@@ -56,7 +56,7 @@ if __name__ == '__main__':
 
     print(x)
 
-    mlp = MultiLayerPerceptron(dim, dim*4)
+    mlp = FeedForwardLayer(dim, dim * 4)
     layer_norm = nn.LayerNorm(dim)
 
     x_out = layer_norm(mlp(x))
