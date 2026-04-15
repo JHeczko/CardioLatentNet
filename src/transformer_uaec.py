@@ -92,7 +92,6 @@ class TransformerUAEC(nn.Module):
         # connector decoder
         dec_out = self.connect_decoder(dec_out, enc_out)
 
-        # now gridning through decoders with upsamplers
         upsamplers_iter = iter(self.upsamplers)
         upsampler = None
 
@@ -110,7 +109,7 @@ class TransformerUAEC(nn.Module):
                 dec_out = upsampler(dec_out)
 
                 # checking if we match with desired output shape
-                # if we have seq_len dimension mismatch we compress oraz upscale the signal with interpolation upsampling
+                # if we have seq_len dimension mismatch we compress oraz upscale the signal with interpolation
                 if dec_out.shape[1] != enc.shape[1]:
                     print("MISMATCH")
                     # interpolation operate on (B, channels, seq_len)
