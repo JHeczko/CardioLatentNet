@@ -1,9 +1,10 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-
-# heartbeat = (num_of_heartbeats, cannals, seq_len)
+# heartbeat = (num_of_heartbeats, seq_len,cannals)
 def plot_heartbeats(heartbeats):
+    # heartbeat = (num_of_heartbeats, cannals, seq_len)
+    heartbeats = np.transpose(heartbeats, (0, 2, 1))
     n_beats = len(heartbeats)
 
     # 1. Kompaktowa siatka: 3 kolumny są zazwyczaj idealne dla ekranu (np. przy 9 uderzeniach to równe 3x3)
