@@ -4,6 +4,8 @@ from torch.nn import functional as F
 
 import warnings
 
+import numpy as np
+
 from layers.transformer import EncoderBlock, DecoderBlock
 from layers.encoding import PositionalEncoding
 from layers.dimension import Upsampler, Downsampler
@@ -28,6 +30,10 @@ class TransformerUAEC(nn.Module):
                 self.downsamplers.append(Downsampler(hidden_dim=hidden_dim, stride=2,kernel_size=3))
 
         # ============== DECODER PART ==============
+        self.dec_pos_emb = PositionalEncoding(max_context_length=seq_len, dim_embedded=hidden_dim)
+
+        self.connect_decoder = DecoderBlock(dim_hidden=hidden_dim, num_heads=num_att_heads, dropout=0.2)
+
         self.decoders = nn.ModuleList()
         self.upsamplers = nn.ModuleList()
         for i in range(num_decoders):
@@ -78,8 +84,15 @@ class TransformerUAEC(nn.Module):
         encs = list(reversed(encs))
 
         # ----- DECODER PASS -----
+        # dec_out = (batch_size, seq_len/(num_encoder//2), hidden_dim)
         dec_out = enc_out
+        pos = self.dec_pos_emb(dec_out)
+        dec_out = dec_out + pos
 
+        # connector decoder
+        dec_out = self.connect_decoder(dec_out, enc_out)
+
+        # now gridning through decoders with upsamplers
         upsamplers_iter = iter(self.upsamplers)
         upsampler = None
 
@@ -87,18 +100,16 @@ class TransformerUAEC(nn.Module):
         enc = None
 
         for i, decoder in enumerate(self.decoders):
-            # assigning upsampler and encdoing from parallel encoding block
+            # at the beggining of each block...
             if i % self.decoders_per_block == 0:
+                # assigning upsampler and encdoing from parallel encoding block
                 enc = next(encs_iter)
                 upsampler = next(upsamplers_iter)
 
-            print("Decoder: ", dec_out.shape, enc.shape, end="\n")
-            dec_out = decoder(dec_out, enc)
-
-            # using upsampler and the end of the block
-            if (i+1)%self.decoders_per_block == 0:
+                # using upsampler
                 dec_out = upsampler(dec_out)
 
+                # checking if we match with desired output shape
                 # if we have seq_len dimension mismatch we compress oraz upscale the signal with interpolation upsampling
                 if dec_out.shape[1] != enc.shape[1]:
                     print("MISMATCH")
@@ -111,13 +122,24 @@ class TransformerUAEC(nn.Module):
                     # bakc to the transformer sizes
                     dec_out = dec_out.transpose(2, 1)
 
+                # adding position after upsampling
+                pos = self.dec_pos_emb(dec_out)
+                dec_out = dec_out + pos
+
+            print("Decoder: ", dec_out.shape, enc.shape, end="\n")
+            dec_out = decoder(dec_out, enc)
+
+        # after grind
+        # dec_out = (batch_size, seq_len, hidden_dim)
+
         # last resort check if somehow sizes are not equal
         if dec_out.shape[1] != starting_shape[1]:
-            print("halo")
+            print("MISMATCH NA KONCU")
             dec_out = dec_out.transpose(2, 1)
             dec_out = F.interpolate(dec_out, starting_shape[1], mode="linear", align_corners=False)
             dec_out = dec_out.transpose(2, 1)
 
+        # dec_out = (batch_size, seq_len, channels)
         dec_out = self.proj(dec_out)
 
         return dec_out
