@@ -22,7 +22,7 @@ Wybór publicznego zbioru (np. PTB‑XL) (dostępna wersja już po preprocesingu
 ## Deliverables
 - notebooki 
 - raport PDF
-- wykresy latent‑space.
+- wykresy latent‑space
 
 [//]: # (- torch: dowolny )
 [//]: # (- cuda: 11.8)
