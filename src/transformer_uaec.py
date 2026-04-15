@@ -11,6 +11,21 @@ from layers.encoding import PositionalEncoding
 from layers.dimension import Upsampler, Downsampler
 
 class TransformerUAEC(nn.Module):
+    """Transformer-based U-shaped Autoencoder (UAEC).
+
+        This architecture employs a symmetric encoder-decoder structure with
+        skip-connections (U-net style) to process sequential data, utilizing
+        downsampling and upsampling layers to manage latent representations.
+
+        Args:
+            blocks (int): Number of main blocks in the architecture.
+            enc_dec_ratio (tuple): Ratio of encoders to decoders per block.
+            num_att_heads (int): Number of heads for multi-head attention.
+            input_dim (int): Dimensionality of the raw input.
+            hidden_dim (int): Internal dimensionality of the Transformer layers.
+            seq_len (int): Length of the input sequence.
+    """
+
     def __init__(self, blocks, enc_dec_ratio, num_att_heads, input_dim, hidden_dim, seq_len):
         super().__init__()
         self.encoders_per_block = enc_dec_ratio[0]
@@ -55,6 +70,15 @@ class TransformerUAEC(nn.Module):
 
     # INPUT - x = (batch_size, seq_len, channels)
     def forward(self, x):
+        """Performs the forward pass of the U-shaped Autoencoder.
+
+                Args:
+                    x (torch.Tensor): Input tensor (batch_size, seq_len, input_dim).
+
+                Returns:
+                    torch.Tensor: Reconstructed output tensor (batch_size, seq_len, input_dim).
+        """
+
         # ----- ENCODER PASS -----
         # x = (batch_size, seq_len, hidden_dim)
         enc_out = self.encoder_embedding(x)
