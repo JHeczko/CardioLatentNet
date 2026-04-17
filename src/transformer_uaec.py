@@ -128,7 +128,7 @@ class TransformerUAEC(nn.Module):
                 downsampler = next(downsamplers_iter)
                 enc_out = downsampler(enc_out)
 
-        print("Latent space size: ", enc_out.shape)
+        #print("Latent space size: ", enc_out.shape)
         # we have to reverse, cuz it was being added in reversed order
         # now we have nicely saved encoders output for U-shape AEC
         encs = list(reversed(encs))
@@ -177,7 +177,7 @@ class TransformerUAEC(nn.Module):
                 pos = self.dec_pos_emb(dec_out)
                 dec_out = dec_out + pos
 
-            print("Decoder: ", dec_out.shape, enc.shape, end="\n")
+            #print("Decoder: ", dec_out.shape, enc.shape, end="\n")
 
             if self.grad_checkpointing and self.training:
                 dec_out = torch.utils.checkpoint.checkpoint(decoder, dec_out, enc, use_reentrant=False)
@@ -197,6 +197,34 @@ class TransformerUAEC(nn.Module):
         dec_out = self.proj(dec_out)
 
         return dec_out
+
+    @torch.no_grad()
+    def encode(self, x):
+        self.eval()
+        # ----- ENCODER PASS -----
+        # x = (batch_size, seq_len, hidden_dim)
+        enc_out = self.encoder_embedding(x)
+        # pos_enc = (batch_size, seq_len, hidden_dim)
+        enc_pos_enc = self.encoder_pos_enc(x)
+        # adding learned position encoding
+        enc_out = enc_out + enc_pos_enc
+
+
+        # x = (batch_size, seq_len/(num_encoder//2), hidden_dim)
+        downsamplers_iter = iter(self.downsamplers)
+        for i,encoder_block in enumerate(self.encoders):
+            if self.grad_checkpointing and self.training:
+                enc_out = torch.utils.checkpoint.checkpoint(encoder_block, enc_out, use_reentrant=False)
+            else:
+                enc_out = encoder_block(enc_out)
+
+            if ((i + 1) % self.encoders_per_block == 0):
+
+                # downsampling
+                downsampler = next(downsamplers_iter)
+                enc_out = downsampler(enc_out)
+
+        return enc_out
 
 if __name__ == "__main__":
     model =TransformerUAEC(blocks=4, enc_dec_ratio=(1,1), num_att_heads=2, input_dim=12, hidden_dim=128, seq_len=60)

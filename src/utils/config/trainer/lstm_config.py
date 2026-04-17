@@ -1,12 +1,13 @@
 from dataclasses import dataclass
 from typing import Literal
 
+
 @dataclass
-class TrainerConfig:
+class LSTMTrainerConfig:
     # training
     max_iters: int = 100_000
     log_every: int = 100
-    eval_every: int = 2000
+    eval_every: int = 2_000
 
     # optimization
     lr: float = 1e-3
@@ -15,12 +16,10 @@ class TrainerConfig:
     grad_clip: float = 1.0
 
     # scheduler
-    warmup_iters: int = 2000
+    warmup_iters: int = 2_000
 
-    # VAE
-    beta_start: float = 0.0
-    beta_end: float = 0.5
-    beta_warmup_iters: int = 15_000
+    # MMD
+    mmd_weight: float = 1.0
 
     # AMP
     use_amp: bool = True
@@ -30,5 +29,5 @@ class TrainerConfig:
     device: str = "cuda"
 
     # checkpointing
-    checkpoint_every: int = 2000
+    checkpoint_every: int = 2_000
     checkpoint_dir: str = "./checkpoints"

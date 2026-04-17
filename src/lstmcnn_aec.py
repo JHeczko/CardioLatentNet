@@ -119,7 +119,7 @@ class LstmCnnAEC(nn.Module):
 
         encoder_lengths = list(reversed(encoder_lengths))
 
-        # ===== LATENT =====
+        # ===== LATENT =====q
         x = self.flatten(x)
 
         z, mu, logvar = self.variational_latent(x)
@@ -147,6 +147,20 @@ class LstmCnnAEC(nn.Module):
 
         return x, mu, logvar
 
+    @torch.no_grad()
+    def encode(self, x):
+        self.eval()
+
+        # ===== ENCODER =====
+        for block in self.encoder_blocks:
+            x = block(x)
+
+        # ===== LATENT =====q
+        x = self.flatten(x)
+
+        _, mu, _ = self.variational_latent(x)
+
+        return mu
 
 if __name__ == "__main__":
     t = torch.randn(9, 60, 12)

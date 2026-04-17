@@ -3,11 +3,10 @@ import json
 import torch
 from torch import nn
 from torch.amp import autocast, GradScaler
-from ..config.trainer import LSTMTrainerConfig
+from ..config.trainer import TransformerTrainerConfig
 
-
-class LstmVeaTrainer:
-    def __init__(self, model: nn.Module, dataloader, config: LSTMTrainerConfig, val_dataloader=None):
+class TransformerUAECTrainer:
+    def __init__(self, model: nn.Module, dataloader, config: TransformerTrainerConfig, val_dataloader=None):
         self.model = model
         self.dataloader = dataloader
         self.val_dataloader = val_dataloader
@@ -26,7 +25,7 @@ class LstmVeaTrainer:
             weight_decay=config.weight_decay
         )
 
-        # loss
+        # loss — zwykły MSE, brak VAE
         self.recon_loss_fn = nn.MSELoss()
 
         # dataloader iterator
@@ -61,24 +60,6 @@ class LstmVeaTrainer:
 
         # step (for resume)
         self.start_step = 1
-
-    # ========================
-    # MMD Loss
-    # ========================
-    def _mmd_loss(self, z):
-        z_prior = torch.randn_like(z)
-
-        def rbf_kernel(x, y):
-            x = x.unsqueeze(1)  # (B, 1, D)
-            y = y.unsqueeze(0)  # (1, B, D)
-            return torch.exp(-((x - y) ** 2).sum(-1) / z.size(1))
-
-        k_zz = rbf_kernel(z, z)
-        k_pp = rbf_kernel(z_prior, z_prior)
-        k_zp = rbf_kernel(z, z_prior)
-
-        mmd = k_zz.mean() + k_pp.mean() - 2 * k_zp.mean()
-        return self.config.mmd_weight * mmd
 
     # ========================
     # LR Scheduler
@@ -127,11 +108,8 @@ class LstmVeaTrainer:
             dtype=self.amp_dtype,
             enabled=self.use_amp
         ):
-            x_hat, mu, logvar = self.model(x)
-
-            recon_loss = self.recon_loss_fn(x_hat, x)
-            reg_loss = self._mmd_loss(mu)
-            loss = recon_loss + reg_loss
+            x_hat = self.model(x)
+            loss = self.recon_loss_fn(x_hat, x)
 
         self.optimizer.zero_grad(set_to_none=True)
 
@@ -149,8 +127,6 @@ class LstmVeaTrainer:
         metrics = {
             "step": step,
             "loss": loss.item(),
-            "recon_loss": recon_loss.item(),
-            "reg_loss": reg_loss.item(),
             "lr": lr
         }
 
@@ -178,7 +154,7 @@ class LstmVeaTrainer:
                 batch = batch[0]
 
             x = batch.to(self.device)
-            x_hat, _, _ = self.model(x)
+            x_hat = self.model(x)
             loss = self.recon_loss_fn(x_hat, x)
             losses.append(loss.item())
 
@@ -191,7 +167,7 @@ class LstmVeaTrainer:
     # Checkpoint Save
     # ========================
     def _save_checkpoint(self, step):
-        path = f"{self.config.checkpoint_dir}/lstm_step_{step}.pt"
+        path = f"{self.config.checkpoint_dir}/transformer_step_{step}.pt"
 
         torch.save({
             "model": self.model.state_dict(),
@@ -218,7 +194,7 @@ class LstmVeaTrainer:
     # Save history
     # ========================
     def _save_history(self):
-        path = f"{self.config.checkpoint_dir}/lstm_history.json"
+        path = f"{self.config.checkpoint_dir}/transformer_history.json"
 
         with open(path, "w") as f:
             json.dump(self.history, f, indent=2)
@@ -235,8 +211,6 @@ class LstmVeaTrainer:
                 print(
                     f"[Step {step}] "
                     f"Loss: {metrics['loss']:.4f} | "
-                    f"Recon: {metrics['recon_loss']:.4f} | "
-                    f"MMD: {metrics['reg_loss']:.4f} | "
                     f"LR: {metrics['lr']:.6f}"
                 )
 
