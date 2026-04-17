@@ -77,10 +77,12 @@ class DecoderBlock(nn.Module):
         identity = x
         x = self.norm2(x)
         x, _ = self.cross_att(x, enc_out, enc_out, need_weights=False)
+
         if self.gating:
             g = torch.sigmoid(self.gate(x.mean(dim=1, keepdim=True)))
         else:
             g = 1.0
+
         x = x * g
         x = self.dropout2(x)
         x = x + identity

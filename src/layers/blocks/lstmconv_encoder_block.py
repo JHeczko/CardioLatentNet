@@ -48,18 +48,8 @@ class LSTMConvEncoderBlock(nn.Module):
         self.conv_dropout = nn.Dropout(p=dropout)
 
 
-        self.alpha = nn.Parameter(torch.tensor(0.1))
+        self.alpha = nn.Parameter(torch.tensor(0.0))
 
-        self._weight_init()
-
-    def _weight_init(self):
-        for name, param in self.lstm.named_parameters():
-            if "weight_ih" in name:
-                nn.init.xavier_uniform_(param)
-            elif "weight_hh" in name:
-                nn.init.orthogonal_(param)
-            elif "bias" in name:
-                nn.init.zeros_(param)
 
     def forward(self,x):
         # input: x = (B, seq_len, channels)

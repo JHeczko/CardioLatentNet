@@ -3,9 +3,9 @@ from torch import nn
 from torch.nn import functional as F
 from torch.utils.checkpoint import checkpoint
 
-from layers.blocks import EncoderBlock, DecoderBlock
-from layers.encoding import PositionalEncoding
-from layers.dimension import Upsampler, Downsampler
+from .layers.blocks import EncoderBlock, DecoderBlock
+from .layers.encoding import PositionalEncoding
+from .layers.dimension import Upsampler, Downsampler
 
 class TransformerUAEC(nn.Module):
     """Transformer-based U-shaped Autoencoder (UAEC).

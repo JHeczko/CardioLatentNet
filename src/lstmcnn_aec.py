@@ -3,7 +3,8 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 
-from src.layers.blocks import LSTMConvDecoderBlock, LSTMConvEncoderBlock, VariationalBlock
+from .layers.blocks import LSTMConvDecoderBlock, LSTMConvEncoderBlock, VariationalBlock
+
 
 class LstmCnnAEC(nn.Module):
     def __init__(self, blocks, latent_dim, seq_len, ecg_channels, dropout):
@@ -12,47 +13,136 @@ class LstmCnnAEC(nn.Module):
         current_channel_size = 32
         current_seq_len = seq_len
 
+        # ===== ENCODER =====
         first = True
         self.encoder_blocks = nn.ModuleList()
+
         for i in range(blocks):
             if first:
-                self.encoder_blocks.append(LSTMConvEncoderBlock(input_dim=ecg_channels, output_dim=current_channel_size, dropout=dropout))
+                self.encoder_blocks.append(
+                    LSTMConvEncoderBlock(
+                        input_dim=ecg_channels,
+                        output_dim=current_channel_size,
+                        dropout=dropout
+                    )
+                )
                 first = False
-                current_seq_len = math.ceil(current_seq_len / 2)
             else:
-                self.encoder_blocks.append(LSTMConvEncoderBlock(input_dim=current_channel_size, output_dim=current_channel_size*2, dropout=dropout))
-                current_channel_size = current_channel_size*2
-                current_seq_len = math.ceil(current_seq_len/2)
+                self.encoder_blocks.append(
+                    LSTMConvEncoderBlock(
+                        input_dim=current_channel_size,
+                        output_dim=current_channel_size * 2,
+                        dropout=dropout
+                    )
+                )
+                current_channel_size *= 2
 
-        print(current_seq_len, current_channel_size)
+            current_seq_len = math.ceil(current_seq_len / 2)
+
+        # zapisujemy do późniejszego reshape
+        self.final_seq_len = current_seq_len
+        self.final_channel_size = current_channel_size
+
+        # ===== LATENT =====
         self.flatten = nn.Flatten()
-        self.variational_latent = VariationalBlock(input_dim=current_channel_size*current_seq_len,latent_dim=latent_dim)
-        self.projection = nn.Linear(latent_dim, current_channel_size*current_seq_len)
 
+        self.variational_latent = VariationalBlock(
+            input_dim=self.final_seq_len * self.final_channel_size,
+            latent_dim=latent_dim
+        )
+
+        self.projection = nn.Linear(
+            latent_dim,
+            self.final_seq_len * self.final_channel_size
+        )
+
+        # ===== DECODER =====
         self.decoder_blocks = nn.ModuleList()
+
         for i in range(blocks):
-            self.decoder_blocks.append(LSTMConvDecoderBlock(current_channel_size, current_channel_size//2, dropout=dropout))
-            current_channel_size = current_channel_size//2
+            self.decoder_blocks.append(
+                LSTMConvDecoderBlock(
+                    input_dim=current_channel_size,
+                    output_dim=current_channel_size // 2,
+                    dropout=dropout
+                )
+            )
+            current_channel_size //= 2
 
         self.out_projection = nn.Linear(current_channel_size, ecg_channels)
+        self._init_weights()
 
+    def _init_weights(self):
+        for m in self.modules():
+
+            # ===== CONV =====
+            if isinstance(m, nn.Conv1d):
+                nn.init.kaiming_normal_(m.weight, nonlinearity='relu')
+                if m.bias is not None:
+                    nn.init.zeros_(m.bias)
+
+            # ===== LINEAR =====
+            elif isinstance(m, nn.Linear):
+                nn.init.xavier_uniform_(m.weight)
+                if m.bias is not None:
+                    nn.init.zeros_(m.bias)
+
+            # ===== GROUPNORM =====
+            elif isinstance(m, nn.GroupNorm):
+                nn.init.ones_(m.weight)
+                nn.init.zeros_(m.bias)
+
+            # ===== LAYERNORM =====
+            elif isinstance(m, nn.LayerNorm):
+                nn.init.ones_(m.weight)
+                nn.init.zeros_(m.bias)
+
+            # ===== LSTM =====
+            elif isinstance(m, nn.LSTM):
+                for name, param in m.named_parameters():
+                    if "weight_ih" in name:
+                        nn.init.xavier_uniform_(param)
+                    elif "weight_hh" in name:
+                        nn.init.orthogonal_(param)
+                    elif "bias" in name:
+                        nn.init.zeros_(param)
 
     def forward(self, x):
+        B = x.shape[0]
+
+        # ===== ENCODER =====
+        encoder_lengths = []
 
         for block in self.encoder_blocks:
             x = block(x)
+            encoder_lengths.append(x.shape[1])  # zapisujemy po każdym bloku
 
-        print(x.shape)
+        encoder_lengths = list(reversed(encoder_lengths))
+
+        # ===== LATENT =====
         x = self.flatten(x)
-        print(x.shape)
-        x, mu, logvar = self.variational_latent(x)
-        x = self.projection(x)
-        x = x.view(x.shape[0], )
-        print(x.shape)
 
-        for decoder_block in self.decoder_blocks:
-            x = decoder_block(x)
+        z, mu, logvar = self.variational_latent(x)
 
+        x = self.projection(z)
+        x = x * (1 / (self.final_channel_size ** 0.5))
+        x = x.view(B, self.final_seq_len, self.final_channel_size)
+
+        # ===== DECODER =====
+        for i, block in enumerate(self.decoder_blocks):
+            target_len = encoder_lengths[i]
+
+            if x.shape[1] != target_len:
+                x = F.interpolate(
+                    x.transpose(1, 2),
+                    size=target_len,
+                    mode='linear',
+                    align_corners=False
+                ).transpose(1, 2)
+
+            x = block(x)
+
+        # ===== OUTPUT =====
         x = self.out_projection(x)
 
         return x, mu, logvar
@@ -63,6 +153,6 @@ if __name__ == "__main__":
 
     vae = LstmCnnAEC(3, 20, 60, 12, 0.2)
 
-    t_out = vae(t)
+    t_out, mu, logvar = vae(t)
 
     print(t_out.shape)
