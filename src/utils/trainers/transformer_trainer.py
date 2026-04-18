@@ -168,6 +168,7 @@ class TransformerUAECTrainer:
     # ========================
     def _save_checkpoint(self, step):
         path = f"{self.config.checkpoint_dir}/transformer_step_{step}.pt"
+        path_newest = f"{self.config.checkpoint_dir}/transformer_newest.pt"
 
         torch.save({
             "model": self.model.state_dict(),
@@ -176,12 +177,21 @@ class TransformerUAECTrainer:
             "history": self.history
         }, path)
 
+        torch.save({
+            "model": self.model.state_dict(),
+            "optimizer": self.optimizer.state_dict(),
+            "step": step,
+            "history": self.history
+        }, path_newest)
+
     # ========================
     # Checkpoint Load
     # ========================
     def load_checkpoint(self, path):
-        checkpoint = torch.load(path, map_location=self.device)
-
+        if path is None:
+            checkpoint = torch.load(f"{self.config.checkpoint_dir}/transformer_newest.pt", map_location=self.device)
+        else:
+            checkpoint = torch.load(path, map_location=self.device)
         self.model.load_state_dict(checkpoint["model"])
         self.optimizer.load_state_dict(checkpoint["optimizer"])
 

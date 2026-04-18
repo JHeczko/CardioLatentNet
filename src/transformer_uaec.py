@@ -3,6 +3,7 @@ from torch import nn
 from torch.nn import functional as F
 from torch.utils.checkpoint import checkpoint
 
+from .utils.config.model import TransformerUAECConfig
 from .layers.blocks import EncoderBlock, DecoderBlock
 from .layers.encoding import PositionalEncoding
 from .layers.dimension import Upsampler, Downsampler
@@ -23,8 +24,19 @@ class TransformerUAEC(nn.Module):
             seq_len (int): Length of the input sequence.
     """
 
-    def __init__(self, blocks, enc_dec_ratio, num_att_heads, input_dim, hidden_dim, seq_len, gradient_checkpointing = False):
+    def __init__(self, config: TransformerUAECConfig):
         super().__init__()
+
+        blocks = config.blocks
+        enc_dec_ratio = config.enc_dec_ratio
+        num_att_heads = config.num_att_heads
+        input_dim = config.input_dim
+        hidden_dim = config.hidden_dim
+        latent_dim = config.latent_dim
+        seq_len = config.seq_len
+        dropout = config.dropout
+        gradient_checkpointing = config.gradient_checkpointing
+
 
         self.grad_checkpointing = gradient_checkpointing
 
@@ -40,19 +52,29 @@ class TransformerUAEC(nn.Module):
         self.encoders = nn.ModuleList()
         self.downsamplers = nn.ModuleList()
         for i in range(num_encoders):
-            self.encoders.append(EncoderBlock(dim_hidden=hidden_dim, num_heads=num_att_heads, dropout=0.2))
+            self.encoders.append(EncoderBlock(dim_hidden=hidden_dim, num_heads=num_att_heads, dropout=dropout))
             if((i+1)%self.encoders_per_block == 0):
                 self.downsamplers.append(Downsampler(hidden_dim=hidden_dim, stride=2,kernel_size=3))
+
+        # ============== LATENT PART ==============
+        # encoder strona
+        self.latent_pool = AttentionPooling(hidden_dim)
+        self.latent_proj = nn.Linear(hidden_dim, latent_dim)
+
+        # decoder strona — odwrotność
+        self.latent_unproj = nn.Linear(latent_dim, hidden_dim)
+        # seq_len po wszystkich downsamplach to właśnie te 5
+        self.bottleneck_seq_len = seq_len // (2 ** blocks)
 
         # ============== DECODER PART ==============
         self.dec_pos_emb = PositionalEncoding(max_context_length=seq_len, dim_embedded=hidden_dim)
 
-        self.connect_decoder = DecoderBlock(dim_hidden=hidden_dim, num_heads=num_att_heads, dropout=0.2)
+        self.connect_decoder = DecoderBlock(dim_hidden=hidden_dim, num_heads=num_att_heads, dropout=dropout)
 
         self.decoders = nn.ModuleList()
         self.upsamplers = nn.ModuleList()
         for i in range(num_decoders):
-            self.decoders.append(DecoderBlock(dim_hidden=hidden_dim, num_heads=num_att_heads, dropout=0.2))
+            self.decoders.append(DecoderBlock(dim_hidden=hidden_dim, num_heads=num_att_heads, dropout=dropout))
             if ((i + 1) % self.decoders_per_block == 0):
                 self.upsamplers.append(Upsampler(hidden_dim=hidden_dim, stride=2,kernel_size=3))
 
@@ -88,7 +110,6 @@ class TransformerUAEC(nn.Module):
                 nn.init.ones_(m.weight)
                 if m.bias is not None:
                     nn.init.zeros_(m.bias)
-
 
     # INPUT - x = (batch_size, seq_len, channels)
     def forward(self, x):
@@ -128,17 +149,27 @@ class TransformerUAEC(nn.Module):
                 downsampler = next(downsamplers_iter)
                 enc_out = downsampler(enc_out)
 
-        #print("Latent space size: ", enc_out.shape)
         # we have to reverse, cuz it was being added in reversed order
         # now we have nicely saved encoders output for U-shape AEC
         encs = list(reversed(encs))
 
+        # ----- LATENT PASS -----
+        # po wszystkich encoder blokach
+        # enc_out: (B, 5, 128)
+        latent = self.latent_pool(enc_out)  # (B, 128)
+        latent = self.latent_proj(latent)  # (B, latent_dim)
 
+        # --- tu masz czysty wektor do klasteryzacji ---
+
+        # rozwiń z powrotem dla decodera
+        bottleneck_seq_len = enc_out.shape[1]
+        x = self.latent_unproj(latent)  # (B, 128)
+        x = x.unsqueeze(1).expand(-1, bottleneck_seq_len, -1)  # (B, 5, 128)
         # ----- DECODER PASS -----
         # dec_out = (batch_size, seq_len/(num_encoder//2), hidden_dim)
 
         # adding postion emb
-        dec_out = enc_out
+        dec_out = x
         pos = self.dec_pos_emb(dec_out)
         dec_out = dec_out + pos
 

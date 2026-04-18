@@ -27,4 +27,4 @@ class TransformerTrainerConfig:
 
     # checkpointing
     checkpoint_every: int = 2_000
-    checkpoint_dir: str = "./checkpoints"
+    checkpoint_dir: str = "./checkpoints_transformer"

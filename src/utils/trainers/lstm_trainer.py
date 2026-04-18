@@ -7,7 +7,7 @@ from ..config.trainer import LSTMTrainerConfig
 
 
 class LstmVeaTrainer:
-    def __init__(self, model: nn.Module, dataloader, config: LSTMTrainerConfig, val_dataloader=None):
+    def __init__(self, model: nn.Module, config: LSTMTrainerConfig, dataloader, val_dataloader=None):
         self.model = model
         self.dataloader = dataloader
         self.val_dataloader = val_dataloader
@@ -192,6 +192,7 @@ class LstmVeaTrainer:
     # ========================
     def _save_checkpoint(self, step):
         path = f"{self.config.checkpoint_dir}/lstm_step_{step}.pt"
+        path_newest = f"{self.config.checkpoint_dir}/lstm_newest.pt"
 
         torch.save({
             "model": self.model.state_dict(),
@@ -200,11 +201,21 @@ class LstmVeaTrainer:
             "history": self.history
         }, path)
 
+        torch.save({
+            "model": self.model.state_dict(),
+            "optimizer": self.optimizer.state_dict(),
+            "step": step,
+            "history": self.history
+        }, path_newest)
+
     # ========================
     # Checkpoint Load
     # ========================
-    def load_checkpoint(self, path):
-        checkpoint = torch.load(path, map_location=self.device)
+    def load_checkpoint(self, path=None):
+        if path is None:
+            checkpoint = torch.load(f"{self.config.checkpoint_dir}/lstm_newest.pt", map_location=self.device)
+        else:
+            checkpoint = torch.load(path, map_location=self.device)
 
         self.model.load_state_dict(checkpoint["model"])
         self.optimizer.load_state_dict(checkpoint["optimizer"])

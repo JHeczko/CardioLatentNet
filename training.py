@@ -2,48 +2,48 @@ from sklearn.manifold import TSNE
 from torch.utils.data import DataLoader
 from src.utils.trainers import LstmVeaTrainer
 from src.utils.config.trainer import LSTMTrainerConfig
+from src.utils.config.model import LSTMConfig
 from src.data import Hearbeat_ECG_DataSet
 
 from src import LstmCnnAEC
 
-from matplotlib import pyplot as plt
-
-if __name__ == '__main__':
-    print("Loading dataset...", end=' ')
-    train_ds = Hearbeat_ECG_DataSet(path="./dataset/ptb_xl_test/")
-    test_ds = Hearbeat_ECG_DataSet(path="./dataset/ptb_xl_test/", mode="test")
+def train_lstm(train_ds, val_ds):
     train_loader = DataLoader(train_ds, shuffle=True, batch_size=16)
-    test_loader = DataLoader(test_ds, shuffle=True, batch_size=len(test_ds))
-    print(f"Done. \nLoader size: {len(train_loader)}")
+    val_loader = DataLoader(val_ds, shuffle=False, batch_size=128)
 
-    print("Starting training...")
-    config = LSTMTrainerConfig(
+    config_trainer = LSTMTrainerConfig(
         max_iters=1000,
-        lr=1e-3,
         device='cpu'
     )
+    config_model = LSTMConfig()
 
+    vae = LstmCnnAEC(config = config_model)
 
-    vae = LstmCnnAEC(2, 20, 60, 12, 0.2)
-    #
     trainer = LstmVeaTrainer(
         model=vae,
         dataloader=train_loader,
-        config=config
+        val_dataloader=val_loader,
+        config=config_trainer
     )
 
+    print("Starting training...")
     trainer.train()
 
-    latent = None
-    for x_all, _ in test_loader:
-        latent = vae.encode(x_all)
 
-    latents = latent.detach().cpu().numpy()
+def train_transformer(train_ds, val_ds): pass
 
-    tsne = TSNE(n_components=2, perplexity=30, random_state=42)
-    proj = tsne.fit_transform(latents)
-    plt.figure(figsize=(8, 6))
-    plt.scatter(proj[:, 0], proj[:, 1], alpha=0.3, s=5)
-    plt.title("Latent space t-SNE")
-    plt.show()
+def train_cnn(train_ds, val_ds): pass
 
+if __name__ == '__main__':
+    print("Loading dataset...", end=' ')
+
+    train_ds = Hearbeat_ECG_DataSet(path="./dataset/ptb_xl_test/", mode='train')
+    val_ds = Hearbeat_ECG_DataSet(path="./dataset/ptb_xl_test/", mode='val')
+    test_ds = Hearbeat_ECG_DataSet(path="./dataset/ptb_xl_test/", mode="test")
+
+    train_loader = DataLoader(train_ds, shuffle=True, batch_size=16)
+    val_loader = DataLoader(val_ds, shuffle=False, batch_size=128)
+    test_loader = DataLoader(test_ds, shuffle=False, batch_size=len(test_ds))
+    print(f"Done. \nLoader size: {len(train_loader)}")
+
+    train_lstm(train_ds, val_ds)

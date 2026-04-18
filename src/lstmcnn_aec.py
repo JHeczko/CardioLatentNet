@@ -3,17 +3,26 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 
+from .utils.config.model import LSTMConfig
 from .layers.blocks import LSTMConvDecoderBlock, LSTMConvEncoderBlock, VariationalBlock
 
 
 class LstmCnnAEC(nn.Module):
-    def __init__(self, blocks, latent_dim, seq_len, ecg_channels, dropout):
+    def __init__(self, config: LSTMConfig):
         super().__init__()
 
-        current_channel_size = 32
-        current_seq_len = seq_len
+        blocks = config.blocks
+        latent_dim = config.latent_dim
+        seq_len = config.seq_len
+        ecg_channels = config.ecg_channels
+        starting_channel_size = config.starting_channel_size
+        dropout = config.dropout
+
 
         # ===== ENCODER =====
+        current_channel_size = starting_channel_size
+        current_seq_len = seq_len
+
         first = True
         self.encoder_blocks = nn.ModuleList()
 
