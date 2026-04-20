@@ -67,6 +67,35 @@ class CnnAecTrainer:
         # step (for resume)
         self.start_step = 1
 
+        # ===== EARLY STOPPER =====
+        self._best_val_loss = float("inf")
+        self._patience_counter = 0
+
+    # ========================
+    # Early Stopper
+    # ========================
+    def _early_stopper(self, val_loss, step):
+        if val_loss < self._best_val_loss:
+            self._best_val_loss = val_loss
+            self._patience_counter = 0
+            self._save_best()
+            return False
+
+        self._patience_counter += 1
+        if self._patience_counter >= self.config.early_stopper_patience:
+            print(f"[EARLY STOP] No improvement for {self.config.early_stopper_patience} evals. Best val loss: {self._best_val_loss:.4f}")
+            return True
+
+        return False
+
+    # ========================
+    # Save best
+    # ========================
+    def _save_best(self):
+        path = f"{self.config.checkpoint_dir}/cnn_best.pt"
+
+        torch.save(self.model.state_dict(), path)
+
     # ========================
     # LR Scheduler
     # ========================
@@ -192,7 +221,7 @@ class CnnAecTrainer:
     # Checkpoint Save
     # ========================
     def _save_checkpoint(self, step):
-        path = f"{self.config.checkpoint_dir}/cnn_step_{step}.pt"
+        #path = f"{self.config.checkpoint_dir}/cnn_step_{step}.pt"
         path_newest = f"{self.config.checkpoint_dir}/cnn_newest.pt"
         path_model = f"{self.config.checkpoint_dir}/cnn_model.pt"
 
@@ -204,7 +233,7 @@ class CnnAecTrainer:
             "history_val": self.history_val
         }
 
-        torch.save(state, path)
+        #torch.save(state, path)
         torch.save(state, path_newest)
         torch.save(self.model.state_dict(), path_model)
 
@@ -254,6 +283,11 @@ class CnnAecTrainer:
                     "val_loss": loss_val,
                 })
 
+                if self._early_stopper(loss_val, step):
+                    self._save_checkpoint(step)
+                    self._save_history()
+                    return self.history, self.history_val
+
             if step % self.config.log_every == 0:
                 print(
                     f"[Step {step}] "
@@ -264,3 +298,5 @@ class CnnAecTrainer:
             if step % self.config.checkpoint_every == 0:
                 self._save_checkpoint(step)
                 self._save_history()
+
+        return self.history, self.history_val

@@ -5,6 +5,7 @@ from torch import nn
 from torch.amp import autocast, GradScaler
 from ..config.trainer import TransformerTrainerConfig
 
+
 class TransformerAecTrainer:
     def __init__(self, model: nn.Module, dataloader, config: TransformerTrainerConfig, val_dataloader=None):
         self.model = model
@@ -25,7 +26,7 @@ class TransformerAecTrainer:
             weight_decay=config.weight_decay
         )
 
-        # loss — zwykły MSE, brak VAE
+        # loss
         self.recon_loss_fn = nn.MSELoss()
 
         # dataloader iterator
@@ -61,6 +62,35 @@ class TransformerAecTrainer:
 
         # step (for resume)
         self.start_step = 1
+
+        # ===== EARLY STOPPER =====
+        self._best_val_loss = float("inf")
+        self._patience_counter = 0
+
+    # ========================
+    # Early Stopper
+    # ========================
+    def _early_stopper(self, val_loss, step):
+        if val_loss < self._best_val_loss:
+            self._best_val_loss = val_loss
+            self._patience_counter = 0
+            self._save_best()
+            return False
+
+        self._patience_counter += 1
+        if self._patience_counter >= self.config.early_stopper_patience:
+            print(f"[EARLY STOP] No improvement for {self.config.early_stopper_patience} evals. Best val loss: {self._best_val_loss:.4f}")
+            return True
+
+        return False
+
+    # ========================
+    # Save best
+    # ========================
+    def _save_best(self):
+        path = f"{self.config.checkpoint_dir}/transformer_best.pt"
+
+        torch.save(self.model.state_dict(), path)
 
     # ========================
     # LR Scheduler
@@ -137,7 +167,7 @@ class TransformerAecTrainer:
     # Evaluation
     # ========================
     @torch.no_grad()
-    def evaluate(self,max_batches=20):
+    def evaluate(self, max_batches=20):
         if self.val_dataloader is None:
             return None
 
@@ -154,8 +184,7 @@ class TransformerAecTrainer:
 
             x = batch.to(self.device)
             x_hat = self.model(x)
-            loss = self.recon_loss_fn(x_hat, x)
-            losses.append(loss.item())
+            losses.append(self.recon_loss_fn(x_hat, x).item())
 
         avg_loss = sum(losses) / len(losses)
         print(f"[EVAL] Recon Loss: {avg_loss:.4f}")
@@ -171,15 +200,13 @@ class TransformerAecTrainer:
 
         losses = []
 
-        for i, batch in enumerate(self.val_dataloader):
-
+        for batch in test_loader:
             if isinstance(batch, (list, tuple)):
                 batch = batch[0]
 
             x = batch.to(self.device)
             x_hat = self.model(x)
-            loss = self.recon_loss_fn(x_hat, x)
-            losses.append(loss.item())
+            losses.append(self.recon_loss_fn(x_hat, x).item())
 
         avg_loss = sum(losses) / len(losses)
         print(f"[TEST] Recon Loss: {avg_loss:.4f}")
@@ -190,36 +217,31 @@ class TransformerAecTrainer:
     # Checkpoint Save
     # ========================
     def _save_checkpoint(self, step):
-        path = f"{self.config.checkpoint_dir}/transformer_step_{step}.pt"
+        # path = f"{self.config.checkpoint_dir}/transformer_step_{step}.pt"
         path_newest = f"{self.config.checkpoint_dir}/transformer_newest.pt"
         path_model = f"{self.config.checkpoint_dir}/transformer_model.pt"
 
-        torch.save({
+        state = {
             "model": self.model.state_dict(),
             "optimizer": self.optimizer.state_dict(),
             "step": step,
             "history": self.history,
             "history_val": self.history_val
-        }, path)
+        }
 
-        torch.save({
-            "model": self.model.state_dict(),
-            "optimizer": self.optimizer.state_dict(),
-            "step": step,
-            "history": self.history,
-            "history_val": self.history_val
-        }, path_newest)
-
+        # torch.save(state, path)
+        torch.save(state, path_newest)
         torch.save(self.model.state_dict(), path_model)
 
     # ========================
     # Checkpoint Load
     # ========================
-    def load_checkpoint(self, path):
+    def load_checkpoint(self, path=None):
         if path is None:
-            checkpoint = torch.load(f"{self.config.checkpoint_dir}/transformer_newest.pt", map_location=self.device)
-        else:
-            checkpoint = torch.load(path, map_location=self.device)
+            path = f"{self.config.checkpoint_dir}/transformer_newest.pt"
+
+        checkpoint = torch.load(path, map_location=self.device)
+
         self.model.load_state_dict(checkpoint["model"])
         self.optimizer.load_state_dict(checkpoint["optimizer"])
 
@@ -257,7 +279,10 @@ class TransformerAecTrainer:
                     "val_loss": loss_val,
                 })
 
-
+                if self._early_stopper(loss_val, step):
+                    self._save_history()
+                    self._save_checkpoint(step)
+                    return self.history, self.history_val
 
             if step % self.config.log_every == 0:
                 print(
@@ -266,7 +291,8 @@ class TransformerAecTrainer:
                     f"LR: {metrics['lr']:.6f}"
                 )
 
-
             if step % self.config.checkpoint_every == 0:
                 self._save_checkpoint(step)
                 self._save_history()
+
+        return self.history, self.history_val

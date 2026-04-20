@@ -6,7 +6,7 @@ from torch.amp import autocast, GradScaler
 from ..config.trainer import LstmTrainerConfig
 
 
-class LstmVeaTrainer:
+class LstmVaeTrainer:
     def __init__(self, model: nn.Module, config: LstmTrainerConfig, dataloader, val_dataloader=None):
         self.model = model
         self.dataloader = dataloader
@@ -62,6 +62,35 @@ class LstmVeaTrainer:
 
         # step (for resume)
         self.start_step = 1
+
+        # ===== EARLY STOPPER =====
+        self._best_val_loss = float("inf")
+        self._patience_counter = 0
+
+    # ========================
+    # Early Stopper
+    # ========================
+    def _early_stopper(self, val_loss, step):
+        if val_loss < self._best_val_loss:
+            self._best_val_loss = val_loss
+            self._patience_counter = 0
+            self._save_best()
+            return False  # nie zatrzymuj
+
+        self._patience_counter += 1
+        if self._patience_counter >= self.config.early_stopper_patience:
+            print(f"[EARLY STOP] No improvement for {self.config.early_stopper_patience} evals. Best val loss: {self._best_val_loss:.4f}")
+            return True  # zatrzymaj
+
+        return False
+
+    # ========================
+    # Save best
+    # ========================
+    def _save_best(self):
+        path = f"{self.config.checkpoint_dir}/lstm_best.pt"
+
+        torch.save(self.model.state_dict(), path)
 
     # ========================
     # MMD Loss
@@ -161,7 +190,7 @@ class LstmVeaTrainer:
     # Evaluation
     # ========================
     @torch.no_grad()
-    def evaluate(self,max_batches=1000):
+    def evaluate(self, max_batches=1000):
         if self.val_dataloader is None:
             return None
 
@@ -178,18 +207,12 @@ class LstmVeaTrainer:
 
             x = batch.to(self.device)
             x_hat, _, _ = self.model(x)
-            loss = self.recon_loss_fn(x_hat, x)
-            losses.append(loss.item())
+            losses.append(self.recon_loss_fn(x_hat, x).item())
 
         avg_loss = sum(losses) / len(losses)
-
         print(f"[EVAL] Recon Loss: {avg_loss:.4f}")
 
         return avg_loss
-
-        # ========================
-        # Evaluation
-        # ========================
 
     @torch.no_grad()
     def test(self, test_loader):
@@ -200,15 +223,13 @@ class LstmVeaTrainer:
 
         losses = []
 
-        for i, batch in enumerate(self.val_dataloader):
-
+        for batch in test_loader:
             if isinstance(batch, (list, tuple)):
                 batch = batch[0]
 
             x = batch.to(self.device)
             x_hat, _, _ = self.model(x)
-            loss = self.recon_loss_fn(x_hat, x)
-            losses.append(loss.item())
+            losses.append(self.recon_loss_fn(x_hat, x).item())
 
         avg_loss = sum(losses) / len(losses)
         print(f"[TEST] Recon Loss: {avg_loss:.4f}")
@@ -219,26 +240,20 @@ class LstmVeaTrainer:
     # Checkpoint Save
     # ========================
     def _save_checkpoint(self, step):
-        path = f"{self.config.checkpoint_dir}/lstm_step_{step}.pt"
+        #path = f"{self.config.checkpoint_dir}/lstm_step_{step}.pt"
         path_newest = f"{self.config.checkpoint_dir}/lstm_newest.pt"
         path_model = f"{self.config.checkpoint_dir}/lstm_model.pt"
 
-        torch.save({
+        state = {
             "model": self.model.state_dict(),
             "optimizer": self.optimizer.state_dict(),
             "step": step,
             "history": self.history,
-            "val_history": self.history_val
-        }, path)
+            "history_val": self.history_val
+        }
 
-        torch.save({
-            "model": self.model.state_dict(),
-            "optimizer": self.optimizer.state_dict(),
-            "step": step,
-            "history": self.history,
-            "val_history": self.history_val
-        }, path_newest)
-
+        #torch.save(state, path)
+        torch.save(state, path_newest)
         torch.save(self.model.state_dict(), path_model)
 
     # ========================
@@ -246,16 +261,16 @@ class LstmVeaTrainer:
     # ========================
     def load_checkpoint(self, path=None):
         if path is None:
-            checkpoint = torch.load(f"{self.config.checkpoint_dir}/lstm_newest.pt", map_location=self.device)
-        else:
-            checkpoint = torch.load(path, map_location=self.device)
+            path = f"{self.config.checkpoint_dir}/lstm_newest.pt"
+
+        checkpoint = torch.load(path, map_location=self.device)
 
         self.model.load_state_dict(checkpoint["model"])
         self.optimizer.load_state_dict(checkpoint["optimizer"])
 
         self.start_step = checkpoint["step"] + 1
         self.history = checkpoint.get("history", [])
-        self.history_val = checkpoint.get("val_history", [])
+        self.history_val = checkpoint.get("history_val", [])
 
         print(f"Loaded checkpoint from step {checkpoint['step']}")
 
@@ -286,6 +301,11 @@ class LstmVeaTrainer:
                     "step": step,
                     "val_loss": loss_val,
                 })
+
+                if self._early_stopper(loss_val, step):
+                    self._save_checkpoint(step)
+                    self._save_history()
+                    return self.history, self.history_val
 
             if step % self.config.log_every == 0:
                 print(
