@@ -8,18 +8,19 @@ class TransformerTrainerConfig:
     max_iters: int = 100_000
     log_every: int = 100
     eval_every: int = 1_000
+    batch_size: int = 64
 
     # optimization
-    lr: float = 1e-3
+    lr: float = 1e-4
     min_lr: float = 1e-5
-    weight_decay: float = 1e-5
+    weight_decay: float = 1e-4
     grad_clip: float = 1.0
 
     # scheduler
-    warmup_iters: int = 2_000
+    warmup_iters: int = 4_000
 
     # early stopper
-    early_stopper_patience: int = 10
+    early_stopper_patience: int = 25
 
     # AMP
     use_amp: bool = True
@@ -29,5 +30,5 @@ class TransformerTrainerConfig:
     device: str = "cuda"
 
     # checkpointing
-    checkpoint_every: int = 2_000
+    checkpoint_every: int = 1_000
     checkpoint_dir: str = "./checkpoints_transformer"

@@ -5,10 +5,10 @@ class TransformerAecConfig:
     # architecture
     blocks: int = 4
     enc_dec_ratio: tuple = (1, 1)
-    num_att_heads: int = 4
+    num_att_heads: int = 8
     input_dim: int = 12
-    hidden_dim: int = 128
-    latent_dim: int = 32
+    hidden_dim: int = 256
+    latent_dim: int = 64
     seq_len: int = 60
     dropout: float = 0.2
-    gradient_checkpointing: bool = False
+    gradient_checkpointing: bool = True

@@ -7,7 +7,8 @@ class CnnTrainerConfig:
     # training
     max_iters: int = 100_000
     log_every: int = 100
-    eval_every: int = 2_000
+    eval_every: int = 1_000
+    batch_size: int = 128
 
     # optimization
     lr: float = 1e-3
@@ -16,10 +17,10 @@ class CnnTrainerConfig:
     grad_clip: float = 1.0
 
     # scheduler
-    warmup_iters: int = 2_000
+    warmup_iters: int = 1_000
 
     # early stopper
-    early_stopper_patience: int = 10
+    early_stopper_patience: int = 20
 
     # AMP
     use_amp: bool = True
@@ -29,5 +30,5 @@ class CnnTrainerConfig:
     device: str = "cuda"
 
     # checkpointing
-    checkpoint_every: int = 2_000
+    checkpoint_every: int = 1_000
     checkpoint_dir: str = "./checkpoints_cnn"

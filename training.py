@@ -1,5 +1,5 @@
 from torch.utils.data import DataLoader
-from src.utils.trainers import LstmVeaTrainer, TransformerAecTrainer, CnnAecTrainer
+from src.utils.trainers import LstmVaeTrainer, TransformerAecTrainer, CnnAecTrainer
 from src.utils.config.trainer import LstmTrainerConfig, TransformerTrainerConfig, CnnTrainerConfig
 from src.utils.config.model import LstmVaeConfig, TransformerAecConfig, CnnAecConfig
 from src.data import Hearbeat_ECG_DataSet
@@ -25,7 +25,7 @@ def run_training(train_ds, val_ds, test_ds, model_cls, trainer_cls, model_cfg, t
 
 
 if __name__ == '__main__':
-    print("Loading dataset...", end=' ')
+    print("Loading dataset...\n", end=' ')
     train_ds = Hearbeat_ECG_DataSet(path="./dataset/ptb_xl_test/", mode='train')
     val_ds = Hearbeat_ECG_DataSet(path="./dataset/ptb_xl_test/", mode='val')
     test_ds = Hearbeat_ECG_DataSet(path="./dataset/ptb_xl_test/", mode="test")
@@ -38,7 +38,7 @@ if __name__ == '__main__':
             "trainer_cls": CnnAecTrainer,
             "model_cfg": CnnAecConfig(),
             "trainer_cfg": CnnTrainerConfig(max_iters=300, checkpoint_every=100, eval_every=100, device='cpu'),
-            "batch_sizes": {'train': 16, 'val': 512},
+            "batch_sizes": {'train': 128, 'val': 512},
             "ckpt": "cnn_newest.pt"
         },
         {
@@ -47,16 +47,16 @@ if __name__ == '__main__':
             "trainer_cls": TransformerAecTrainer,
             "model_cfg": TransformerAecConfig(),
             "trainer_cfg": TransformerTrainerConfig(max_iters=300, checkpoint_every=100, eval_every=100, device='cpu'),
-            "batch_sizes": {'train': 32, 'val': 512},
+            "batch_sizes": {'train': 64, 'val': 512},
             "ckpt": "transformer_newest.pt"
         },
         {
             "name": "LSTM VAE",
             "model_cls": LstmVae,
-            "trainer_cls": LstmVeaTrainer,
+            "trainer_cls": LstmVaeTrainer,
             "model_cfg": LstmVaeConfig(),
             "trainer_cfg": LstmTrainerConfig(max_iters=300, checkpoint_every=100, eval_every=100, device='cpu'),
-            "batch_sizes": {'train': 32, 'val': 512},
+            "batch_sizes": {'train': 128, 'val': 512},
             "ckpt": "lstm_newest.pt"
         },
     ]

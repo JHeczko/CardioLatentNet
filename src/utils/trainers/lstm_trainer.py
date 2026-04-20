@@ -70,7 +70,7 @@ class LstmVaeTrainer:
     # ========================
     # Early Stopper
     # ========================
-    def _early_stopper(self, val_loss, step):
+    def _early_stopper(self, val_loss):
         if val_loss < self._best_val_loss:
             self._best_val_loss = val_loss
             self._patience_counter = 0
@@ -295,18 +295,6 @@ class LstmVaeTrainer:
             metrics = self.train_step(step)
             self.history.append(metrics)
 
-            if self.val_dataloader and step % self.config.eval_every == 0:
-                loss_val = self.evaluate()
-                self.history_val.append({
-                    "step": step,
-                    "val_loss": loss_val,
-                })
-
-                if self._early_stopper(loss_val, step):
-                    self._save_checkpoint(step)
-                    self._save_history()
-                    return self.history, self.history_val
-
             if step % self.config.log_every == 0:
                 print(
                     f"[Step {step}] "
@@ -315,6 +303,19 @@ class LstmVaeTrainer:
                     f"MMD: {metrics['reg_loss']:.4f} | "
                     f"LR: {metrics['lr']:.6f}"
                 )
+
+            if self.val_dataloader and step % self.config.eval_every == 0:
+                loss_val = self.evaluate()
+                self.history_val.append({
+                    "step": step,
+                    "val_loss": loss_val,
+                })
+
+                if self._early_stopper(loss_val):
+                    self._save_checkpoint(step)
+                    self._save_history()
+                    return self.history, self.history_val
+
 
             if step % self.config.checkpoint_every == 0:
                 self._save_checkpoint(step)

@@ -128,7 +128,7 @@ class LstmVae(nn.Module):
 
         encoder_lengths = list(reversed(encoder_lengths))
 
-        # ===== LATENT =====q
+        # ===== LATENT =====
         x = self.flatten(x)
 
         z, mu, logvar = self.variational_latent(x)

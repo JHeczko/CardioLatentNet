@@ -276,6 +276,13 @@ class CnnAecTrainer:
             metrics = self.train_step(step)
             self.history.append(metrics)
 
+            if step % self.config.log_every == 0:
+                print(
+                    f"[Step {step}] "
+                    f"Loss: {metrics['loss']:.4f} | "
+                    f"LR: {metrics['lr']:.6f}"
+                )
+
             if self.val_dataloader and step % self.config.eval_every == 0:
                 loss_val = self.evaluate()
                 self.history_val.append({
@@ -288,12 +295,6 @@ class CnnAecTrainer:
                     self._save_history()
                     return self.history, self.history_val
 
-            if step % self.config.log_every == 0:
-                print(
-                    f"[Step {step}] "
-                    f"Loss: {metrics['loss']:.4f} | "
-                    f"LR: {metrics['lr']:.6f}"
-                )
 
             if step % self.config.checkpoint_every == 0:
                 self._save_checkpoint(step)

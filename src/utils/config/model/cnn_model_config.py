@@ -5,7 +5,7 @@ class CnnAecConfig:
     # architecture
     input_dim: int = 12
     seq_len: int = 60
-    hidden_channels: int = 64
-    latent_dim: int = 32
+    hidden_channels: int = 128
+    latent_dim: int = 64
     blocks: int = 3
-    dropout: float = 0.1
+    dropout: float = 0.2
