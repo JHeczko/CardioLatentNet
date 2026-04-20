@@ -1,3 +1,5 @@
+from concurrent.futures import ProcessPoolExecutor
+
 import torch
 import pandas as pd
 import ast
@@ -11,6 +13,22 @@ from tqdm import tqdm
 
 import timeit
 
+def process_file(args):
+    file, label, path, sampling_rate, pre_sample, post_sample = args
+
+    out = []
+    series, _ = wfdb.rdsamp(path + file)
+    II_series = series[:, 1]
+
+    cleaned_series = nk.ecg_clean(II_series, sampling_rate=sampling_rate)
+    _, info = nk.ecg_peaks(cleaned_series, sampling_rate=sampling_rate)
+    r_peaks = info["ECG_R_Peaks"]
+
+    for peak in r_peaks:
+        if (peak - pre_sample >= 0) and (peak + post_sample <= len(II_series)):
+            out.append((file, peak, label))
+
+    return out
 
 class Hearbeat_ECG_DataSet(torch.utils.data.Dataset):
 
@@ -85,19 +103,23 @@ class Hearbeat_ECG_DataSet(torch.utils.data.Dataset):
         self.pre_sample = int(0.2 * self.sampling_rate)
         self.post_sample = int(0.4 * self.sampling_rate)
 
-
         self.X_files = []
 
-        for file, label in tqdm(zip(X, y), total=len(X), desc="Processing ECG files", unit="file"):
-            series, _ = wfdb.rdsamp(path + file)
-            II_series = series[:,1]
-            cleaned_series = nk.ecg_clean(II_series, sampling_rate=self.sampling_rate)
-            signals, info = nk.ecg_peaks(cleaned_series, sampling_rate=self.sampling_rate)
-            r_peaks = info["ECG_R_Peaks"]
+        args_list = [
+            (file, label, self.path, self.sampling_rate, self.pre_sample, self.post_sample)
+            for file, label in zip(X, y)
+        ]
 
-            for peak in r_peaks:
-                if (peak - self.pre_sample >= 0) and (peak + self.post_sample <= len(II_series)):
-                    self.X_files.append((file, peak, label))
+        with ProcessPoolExecutor() as executor:
+            results = list(tqdm(
+                executor.map(process_file, args_list),
+                total=len(args_list),
+                desc="Processing ECG files",
+                unit="file"
+            ))
+
+        for res in results:
+            self.X_files.extend(res)
 
 
     def __len__(self):
