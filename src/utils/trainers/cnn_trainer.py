@@ -3,7 +3,7 @@ import json
 import torch
 from torch import nn
 from torch.amp import autocast, GradScaler
-from ..config.cnn import CnnTrainerConfig
+from src.utils.config.trainer import CnnTrainerConfig
 
 
 class CnnAECTrainer:
@@ -192,9 +192,9 @@ class CnnAECTrainer:
     # Checkpoint Save
     # ========================
     def _save_checkpoint(self, step):
-        path = f"{self.config.checkpoint_dir}/cnn_aec_step_{step}.pt"
-        path_newest = f"{self.config.checkpoint_dir}/cnn_aec_newest.pt"
-        path_model = f"{self.config.checkpoint_dir}/cnn_aec_model.pt"
+        path = f"{self.config.checkpoint_dir}/cnn_step_{step}.pt"
+        path_newest = f"{self.config.checkpoint_dir}/cnn_newest.pt"
+        path_model = f"{self.config.checkpoint_dir}/cnn_model.pt"
 
         state = {
             "model": self.model.state_dict(),
@@ -213,7 +213,7 @@ class CnnAECTrainer:
     # ========================
     def load_checkpoint(self, path=None):
         if path is None:
-            path = f"{self.config.checkpoint_dir}/cnn_aec_newest.pt"
+            path = f"{self.config.checkpoint_dir}/cnn_newest.pt"
 
         checkpoint = torch.load(path, map_location=self.device)
 
@@ -230,8 +230,8 @@ class CnnAECTrainer:
     # Save history
     # ========================
     def _save_history(self):
-        path = f"{self.config.checkpoint_dir}/cnn_aec_history.json"
-        path_val = f"{self.config.checkpoint_dir}/cnn_aec_history_val.json"
+        path = f"{self.config.checkpoint_dir}/cnn_history.json"
+        path_val = f"{self.config.checkpoint_dir}/cnn_history_val.json"
 
         with open(path, "w") as f:
             json.dump(self.history, f, indent=2)

@@ -3,7 +3,7 @@ from torch import nn
 from src.layers.mlp import FeedForwardLayer
 
 
-class EncoderBlock(nn.Module):
+class TransformerEncoderBlock(nn.Module):
     """A single Transformer encoder block.
 
         This block implements a standard Transformer encoder layer consisting of

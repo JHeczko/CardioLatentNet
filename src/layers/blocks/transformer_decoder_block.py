@@ -3,7 +3,7 @@ from torch import nn
 
 from src.layers.mlp import FeedForwardLayer
 
-class DecoderBlock(nn.Module):
+class TransformerDecoderBlock(nn.Module):
     """A single decoder block for a U-shaped Transformer architecture.
 
         This block integrates information from the current decoder state and

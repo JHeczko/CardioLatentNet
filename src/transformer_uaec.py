@@ -4,7 +4,7 @@ from torch.nn import functional as F
 from torch.utils.checkpoint import checkpoint
 
 from .utils.config.model import TransformerUAECConfig
-from .layers.blocks import EncoderBlock, DecoderBlock
+from .layers.blocks import TransformerEncoderBlock, TransformerDecoderBlock
 from .layers.encoding import PositionalEncoding
 from .layers.dimension import Upsampler, Downsampler
 from .layers.attention_pooling import AttentionPooling
@@ -53,7 +53,7 @@ class TransformerUAEC(nn.Module):
         self.encoders = nn.ModuleList()
         self.downsamplers = nn.ModuleList()
         for i in range(num_encoders):
-            self.encoders.append(EncoderBlock(dim_hidden=hidden_dim, num_heads=num_att_heads, dropout=dropout))
+            self.encoders.append(TransformerEncoderBlock(dim_hidden=hidden_dim, num_heads=num_att_heads, dropout=dropout))
             if((i+1)%self.encoders_per_block == 0):
                 self.downsamplers.append(Downsampler(hidden_dim=hidden_dim, stride=2,kernel_size=3))
 
@@ -70,12 +70,12 @@ class TransformerUAEC(nn.Module):
         # ============== DECODER PART ==============
         self.dec_pos_emb = PositionalEncoding(max_context_length=seq_len, dim_embedded=hidden_dim)
 
-        self.connect_decoder = DecoderBlock(dim_hidden=hidden_dim, num_heads=num_att_heads, dropout=dropout)
+        self.connect_decoder = TransformerDecoderBlock(dim_hidden=hidden_dim, num_heads=num_att_heads, dropout=dropout)
 
         self.decoders = nn.ModuleList()
         self.upsamplers = nn.ModuleList()
         for i in range(num_decoders):
-            self.decoders.append(DecoderBlock(dim_hidden=hidden_dim, num_heads=num_att_heads, dropout=dropout))
+            self.decoders.append(TransformerDecoderBlock(dim_hidden=hidden_dim, num_heads=num_att_heads, dropout=dropout))
             if ((i + 1) % self.decoders_per_block == 0):
                 self.upsamplers.append(Upsampler(hidden_dim=hidden_dim, stride=2,kernel_size=3))
 

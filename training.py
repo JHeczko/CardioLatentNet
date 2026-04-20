@@ -1,93 +1,74 @@
 from torch.utils.data import DataLoader
-from src.utils.trainers import LstmVeaTrainer, TransformerUAECTrainer
-from src.utils.config.trainer import LSTMTrainerConfig, TransformerTrainerConfig
-from src.utils.config.model import LSTMConfig, TransformerUAECConfig
+from src.utils.trainers import LstmVeaTrainer, TransformerUAECTrainer, CnnAECTrainer
+from src.utils.config.trainer import LSTMTrainerConfig, TransformerTrainerConfig, CnnTrainerConfig
+from src.utils.config.model import LSTMConfig, TransformerUAECConfig, CnnAECConfig
 from src.data import Hearbeat_ECG_DataSet
+from src import LstmCnnAEC, TransformerUAEC, CnnAEC
 
-from src import LstmCnnAEC,TransformerUAEC
 
-def train_lstm(train_ds, val_ds, test_ds, resume_training=False):
-    print("===== LSTM VAE =====")
-
-    train_loader = DataLoader(train_ds, shuffle=True, batch_size=32)
-    val_loader = DataLoader(val_ds, shuffle=False, batch_size=512)
+def run_training(train_ds, val_ds, test_ds, model_cls, trainer_cls, model_cfg, trainer_cfg, batch_sizes,
+                 checkpoint_name, resume_training=False):
+    train_loader = DataLoader(train_ds, shuffle=True, batch_size=batch_sizes['train'])
+    val_loader = DataLoader(val_ds, shuffle=False, batch_size=batch_sizes['val'])
     test_loader = DataLoader(test_ds, shuffle=False, batch_size=len(test_ds))
 
-    config_trainer = LSTMTrainerConfig(
-        max_iters=300,
-        checkpoint_every=100,
-        eval_every=100,
-        device='cpu'
-    )
-    config_model = LSTMConfig()
-
-    vae = LstmCnnAEC(config = config_model)
-
-    trainer = LstmVeaTrainer(
-        model=vae,
-        dataloader=train_loader,
-        val_dataloader=val_loader,
-        config=config_trainer
-    )
+    model = model_cls(config=model_cfg)
+    trainer = trainer_cls(model=model, dataloader=train_loader, val_dataloader=val_loader, config=trainer_cfg)
 
     if resume_training:
-        print(f"Loading the checkpoint({config_trainer.checkpoint_dir}/lstm_newest.pt)...")
-        trainer.load_checkpoint(f"{config_trainer.checkpoint_dir}/lstm_newest.pt")
+        trainer.load_checkpoint(f"{trainer_cfg.checkpoint_dir}/{checkpoint_name}")
 
-    print("Starting training...")
     trainer.train()
-
-    print("Done training...")
     trainer.test(test_loader)
 
-    return vae
+    return model
 
-def train_transformer(train_ds, val_ds, test_ds, resume_training=False):
-    print("===== TRANSFORMER =====")
-
-    train_loader = DataLoader(train_ds, shuffle=True, batch_size=16)
-    val_loader = DataLoader(val_ds, shuffle=False, batch_size=128)
-    test_loader = DataLoader(test_ds, shuffle=False, batch_size=len(test_ds))
-
-    config_trainer = TransformerTrainerConfig(
-        max_iters=300,
-        checkpoint_every=100,
-        eval_every=100,
-        device='cpu'
-    )
-    config_model = TransformerUAECConfig()
-
-    uaec = TransformerUAEC(config = config_model)
-
-    trainer = TransformerUAECTrainer(
-        model=uaec,
-        dataloader=train_loader,
-        val_dataloader=val_loader,
-        config=config_trainer
-    )
-
-    if resume_training:
-        print(f"Loading the checkpoint({config_trainer.checkpoint_dir}/transformer_newest.pt)...")
-        trainer.load_checkpoint(f"{config_trainer.checkpoint_dir}/transformer_newest.pt")
-
-    print("Starting training...")
-    trainer.train()
-
-    print("Done training...")
-    trainer.test(test_loader)
-
-    return uaec
-
-def train_cnn(train_ds, val_ds, test_ds, resume_training=False): pass
 
 if __name__ == '__main__':
     print("Loading dataset...", end=' ')
-
     train_ds = Hearbeat_ECG_DataSet(path="./dataset/ptb_xl_test/", mode='train')
     val_ds = Hearbeat_ECG_DataSet(path="./dataset/ptb_xl_test/", mode='val')
     test_ds = Hearbeat_ECG_DataSet(path="./dataset/ptb_xl_test/", mode="test")
-
     print("Done")
 
-    model_transformer = train_transformer(train_ds, val_ds, test_ds)
-    model_vae = train_lstm(train_ds, val_ds, test_ds)
+    configs = [
+        {
+            "name": "CNN",
+            "model_cls": CnnAEC,
+            "trainer_cls": CnnAECTrainer,
+            "model_cfg": CnnAECConfig(),
+            "trainer_cfg": CnnTrainerConfig(max_iters=300, checkpoint_every=100, eval_every=100, device='cpu'),
+            "batch_sizes": {'train': 16, 'val': 512},
+            "ckpt": "cnn_newest.pt"
+        },
+        {
+            "name": "TRANSFORMER",
+            "model_cls": TransformerUAEC,
+            "trainer_cls": TransformerUAECTrainer,
+            "model_cfg": TransformerUAECConfig(),
+            "trainer_cfg": TransformerTrainerConfig(max_iters=300, checkpoint_every=100, eval_every=100, device='cpu'),
+            "batch_sizes": {'train': 32, 'val': 512},
+            "ckpt": "transformer_newest.pt"
+        },
+        {
+            "name": "LSTM VAE",
+            "model_cls": LstmCnnAEC,
+            "trainer_cls": LstmVeaTrainer,
+            "model_cfg": LSTMConfig(),
+            "trainer_cfg": LSTMTrainerConfig(max_iters=300, checkpoint_every=100, eval_every=100, device='cpu'),
+            "batch_sizes": {'train': 32, 'val': 512},
+            "ckpt": "lstm_newest.pt"
+        },
+    ]
+
+    for cfg in configs:
+        print(f"===== {cfg['name']} =====")
+        run_training(
+            train_ds, val_ds, test_ds,
+            model_cls=cfg['model_cls'],
+            trainer_cls=cfg['trainer_cls'],
+            model_cfg=cfg['model_cfg'],
+            trainer_cfg=cfg['trainer_cfg'],
+            batch_sizes=cfg['batch_sizes'],
+            checkpoint_name=cfg['ckpt']
+        )

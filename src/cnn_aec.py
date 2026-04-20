@@ -3,68 +3,10 @@ from torch import nn
 from torch.nn import functional as F
 from dataclasses import dataclass
 
-
-# ========================
-# Config
-# ========================
-
-@dataclass
-class CnnAECConfig:
-    # architecture
-    input_dim: int = 12
-    seq_len: int = 60
-    hidden_channels: int = 64
-    latent_dim: int = 32
-    blocks: int = 3
-    dropout: float = 0.1
-
-
-# ========================
-# Blocks
-# ========================
-
-class EncoderBlock(nn.Module):
-    def __init__(self, in_channels, out_channels, dropout):
-        super().__init__()
-
-        self.block = nn.Sequential(
-            nn.Conv1d(in_channels, out_channels, kernel_size=3, stride=2, padding=1),
-            nn.BatchNorm1d(out_channels),
-            nn.GELU(),
-            nn.Dropout(dropout),
-        )
-
-    def forward(self, x):
-        return self.block(x)
-
-
-class DecoderBlock(nn.Module):
-    def __init__(self, in_channels, out_channels, dropout):
-        super().__init__()
-
-        self.block = nn.Sequential(
-            nn.ConvTranspose1d(in_channels, out_channels, kernel_size=4, stride=2, padding=1),
-            nn.BatchNorm1d(out_channels),
-            nn.GELU(),
-            nn.Dropout(dropout),
-        )
-
-    def forward(self, x):
-        return self.block(x)
-
-
-class AttentionPooling(nn.Module):
-    def __init__(self, hidden_dim):
-        super().__init__()
-
-        self.attn = nn.Linear(hidden_dim, 1)
-
-    def forward(self, x):
-        # x: (B, seq_len, hidden_dim)
-        weights = torch.softmax(self.attn(x), dim=1)  # (B, seq_len, 1)
-        pooled = (weights * x).sum(dim=1)              # (B, hidden_dim)
-        return pooled
-
+from src.layers import AttentionPooling
+from src.layers.blocks import ConvEncoderBlock as EncoderBlock
+from src.layers.blocks import ConvDecoderBlock as DecoderBlock
+from src.utils.config.model import CnnAECConfig
 
 # ========================
 # Model

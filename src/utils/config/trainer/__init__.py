@@ -1,2 +1,3 @@
-from .lstm_config import LSTMTrainerConfig
-from .transformer_config import TransformerTrainerConfig
+from .lstm_trainer_config import LSTMTrainerConfig
+from .transformer_trainer_config import TransformerTrainerConfig
+from . cnn_trainer_config import CnnTrainerConfig
