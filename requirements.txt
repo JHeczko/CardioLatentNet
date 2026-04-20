@@ -1,7 +1,7 @@
 matplotlib
 neurokit2
 numpy
-pandas
+pandas<=2.3.3
 scikit-learn
 seaborn
 umap-learn
