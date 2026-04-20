@@ -3,11 +3,11 @@ import json
 import torch
 from torch import nn
 from torch.amp import autocast, GradScaler
-from ..config.trainer import LSTMTrainerConfig
+from ..config.trainer import LstmTrainerConfig
 
 
 class LstmVeaTrainer:
-    def __init__(self, model: nn.Module, config: LSTMTrainerConfig, dataloader, val_dataloader=None):
+    def __init__(self, model: nn.Module, config: LstmTrainerConfig, dataloader, val_dataloader=None):
         self.model = model
         self.dataloader = dataloader
         self.val_dataloader = val_dataloader

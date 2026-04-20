@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 
 @dataclass
-class LSTMConfig:
+class LstmVaeConfig:
     # architecture
     blocks: int = 3
     latent_dim: int = 32

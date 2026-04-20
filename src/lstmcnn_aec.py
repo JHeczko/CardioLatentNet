@@ -3,12 +3,12 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 
-from .utils.config.model import LSTMConfig
+from .utils.config.model import LstmVaeConfig
 from .layers.blocks import LSTMConvDecoderBlock, LSTMConvEncoderBlock, VariationalBlock
 
 
-class LstmCnnAEC(nn.Module):
-    def __init__(self, config: LSTMConfig):
+class LstmVae(nn.Module):
+    def __init__(self, config: LstmVaeConfig):
         super().__init__()
 
         blocks = config.blocks
@@ -174,7 +174,7 @@ class LstmCnnAEC(nn.Module):
 if __name__ == "__main__":
     t = torch.randn(9, 60, 12)
 
-    vae = LstmCnnAEC(3, 20, 60, 12, 0.2)
+    vae = LstmVae(3, 20, 60, 12, 0.2)
 
     t_out, mu, logvar = vae(t)
 

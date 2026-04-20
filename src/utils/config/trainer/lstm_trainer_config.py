@@ -3,7 +3,7 @@ from typing import Literal
 
 
 @dataclass
-class LSTMTrainerConfig:
+class LstmTrainerConfig:
     # training
     max_iters: int = 100_000
     log_every: int = 100

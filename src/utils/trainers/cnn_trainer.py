@@ -3,10 +3,10 @@ import json
 import torch
 from torch import nn
 from torch.amp import autocast, GradScaler
-from src.utils.config.trainer import CnnTrainerConfig
+from ..config.trainer import CnnTrainerConfig
 
 
-class CnnAECTrainer:
+class CnnAecTrainer:
     def __init__(self, model: nn.Module, dataloader, config: CnnTrainerConfig, val_dataloader=None):
         self.model = model
         self.dataloader = dataloader

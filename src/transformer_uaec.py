@@ -3,13 +3,13 @@ from torch import nn
 from torch.nn import functional as F
 from torch.utils.checkpoint import checkpoint
 
-from .utils.config.model import TransformerUAECConfig
+from .utils.config.model import TransformerAecConfig
 from .layers.blocks import TransformerEncoderBlock, TransformerDecoderBlock
 from .layers.encoding import PositionalEncoding
 from .layers.dimension import Upsampler, Downsampler
 from .layers.attention_pooling import AttentionPooling
 
-class TransformerUAEC(nn.Module):
+class TransformerAec(nn.Module):
     """Transformer-based U-shaped Autoencoder (UAEC).
 
         This architecture employs a symmetric encoder-decoder structure with
@@ -25,7 +25,7 @@ class TransformerUAEC(nn.Module):
             seq_len (int): Length of the input sequence.
     """
 
-    def __init__(self, config: TransformerUAECConfig):
+    def __init__(self, config: TransformerAecConfig):
         super().__init__()
 
         blocks = config.blocks
@@ -263,8 +263,8 @@ class TransformerUAEC(nn.Module):
         return latent
 
 if __name__ == "__main__":
-    config = TransformerUAECConfig()
-    model =TransformerUAEC(config=config)
+    config = TransformerAecConfig()
+    model =TransformerAec(config=config)
 
     x = torch.ones(6, 60, 12)
 

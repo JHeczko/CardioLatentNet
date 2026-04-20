@@ -2,7 +2,6 @@ import torch
 import pandas as pd
 import ast
 import wfdb
-import numpy as np
 from typing import Literal
 from sklearn.preprocessing import MultiLabelBinarizer
 

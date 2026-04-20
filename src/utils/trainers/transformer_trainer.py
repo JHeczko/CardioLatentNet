@@ -5,7 +5,7 @@ from torch import nn
 from torch.amp import autocast, GradScaler
 from ..config.trainer import TransformerTrainerConfig
 
-class TransformerUAECTrainer:
+class TransformerAecTrainer:
     def __init__(self, model: nn.Module, dataloader, config: TransformerTrainerConfig, val_dataloader=None):
         self.model = model
         self.dataloader = dataloader

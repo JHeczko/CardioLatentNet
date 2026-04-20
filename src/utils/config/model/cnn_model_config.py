@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 
 @dataclass
-class CnnAECConfig:
+class CnnAecConfig:
     # architecture
     input_dim: int = 12
     seq_len: int = 60

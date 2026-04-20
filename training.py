@@ -1,9 +1,9 @@
 from torch.utils.data import DataLoader
-from src.utils.trainers import LstmVeaTrainer, TransformerUAECTrainer, CnnAECTrainer
-from src.utils.config.trainer import LSTMTrainerConfig, TransformerTrainerConfig, CnnTrainerConfig
-from src.utils.config.model import LSTMConfig, TransformerUAECConfig, CnnAECConfig
+from src.utils.trainers import LstmVeaTrainer, TransformerAecTrainer, CnnAecTrainer
+from src.utils.config.trainer import LstmTrainerConfig, TransformerTrainerConfig, CnnTrainerConfig
+from src.utils.config.model import LstmVaeConfig, TransformerAecConfig, CnnAecConfig
 from src.data import Hearbeat_ECG_DataSet
-from src import LstmCnnAEC, TransformerUAEC, CnnAEC
+from src import LstmVae, TransformerAec, CnnAec
 
 
 def run_training(train_ds, val_ds, test_ds, model_cls, trainer_cls, model_cfg, trainer_cfg, batch_sizes,
@@ -34,28 +34,28 @@ if __name__ == '__main__':
     configs = [
         {
             "name": "CNN",
-            "model_cls": CnnAEC,
-            "trainer_cls": CnnAECTrainer,
-            "model_cfg": CnnAECConfig(),
+            "model_cls": CnnAec,
+            "trainer_cls": CnnAecTrainer,
+            "model_cfg": CnnAecConfig(),
             "trainer_cfg": CnnTrainerConfig(max_iters=300, checkpoint_every=100, eval_every=100, device='cpu'),
             "batch_sizes": {'train': 16, 'val': 512},
             "ckpt": "cnn_newest.pt"
         },
         {
             "name": "TRANSFORMER",
-            "model_cls": TransformerUAEC,
-            "trainer_cls": TransformerUAECTrainer,
-            "model_cfg": TransformerUAECConfig(),
+            "model_cls": TransformerAec,
+            "trainer_cls": TransformerAecTrainer,
+            "model_cfg": TransformerAecConfig(),
             "trainer_cfg": TransformerTrainerConfig(max_iters=300, checkpoint_every=100, eval_every=100, device='cpu'),
             "batch_sizes": {'train': 32, 'val': 512},
             "ckpt": "transformer_newest.pt"
         },
         {
             "name": "LSTM VAE",
-            "model_cls": LstmCnnAEC,
+            "model_cls": LstmVae,
             "trainer_cls": LstmVeaTrainer,
-            "model_cfg": LSTMConfig(),
-            "trainer_cfg": LSTMTrainerConfig(max_iters=300, checkpoint_every=100, eval_every=100, device='cpu'),
+            "model_cfg": LstmVaeConfig(),
+            "trainer_cfg": LstmTrainerConfig(max_iters=300, checkpoint_every=100, eval_every=100, device='cpu'),
             "batch_sizes": {'train': 32, 'val': 512},
             "ckpt": "lstm_newest.pt"
         },

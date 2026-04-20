@@ -6,14 +6,10 @@ from dataclasses import dataclass
 from src.layers import AttentionPooling
 from src.layers.blocks import ConvEncoderBlock as EncoderBlock
 from src.layers.blocks import ConvDecoderBlock as DecoderBlock
-from src.utils.config.model import CnnAECConfig
+from src.utils.config.model import CnnAecConfig
 
-# ========================
-# Model
-# ========================
-
-class CnnAEC(nn.Module):
-    def __init__(self, config: CnnAECConfig):
+class CnnAec(nn.Module):
+    def __init__(self, config: CnnAecConfig):
         super().__init__()
 
         self.config = config
@@ -130,8 +126,8 @@ class CnnAEC(nn.Module):
 
 
 if __name__ == "__main__":
-    cfg = CnnAECConfig(input_dim=12, seq_len=60, hidden_channels=64, latent_dim=32, blocks=3)
-    model = CnnAEC(cfg)
+    cfg = CnnAecConfig(input_dim=12, seq_len=60, hidden_channels=64, latent_dim=32, blocks=3)
+    model = CnnAec(cfg)
 
     x = torch.randn(8, 60, 12)
     x_hat, latent = model(x)
