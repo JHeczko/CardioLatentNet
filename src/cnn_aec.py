@@ -53,6 +53,19 @@ class DecoderBlock(nn.Module):
         return self.block(x)
 
 
+class AttentionPooling(nn.Module):
+    def __init__(self, hidden_dim):
+        super().__init__()
+
+        self.attn = nn.Linear(hidden_dim, 1)
+
+    def forward(self, x):
+        # x: (B, seq_len, hidden_dim)
+        weights = torch.softmax(self.attn(x), dim=1)  # (B, seq_len, 1)
+        pooled = (weights * x).sum(dim=1)              # (B, hidden_dim)
+        return pooled
+
+
 # ========================
 # Model
 # ========================
@@ -76,12 +89,10 @@ class CnnAEC(nn.Module):
         self.final_seq_len = config.seq_len // (2 ** config.blocks)
 
         # ===== LATENT =====
-        self.flatten = nn.Flatten()
+        self.attn_pool = AttentionPooling(self.final_channels)
 
-        flat_dim = self.final_channels * self.final_seq_len
-
-        self.to_latent = nn.Linear(flat_dim, config.latent_dim)
-        self.from_latent = nn.Linear(config.latent_dim, flat_dim)
+        self.to_latent = nn.Linear(self.final_channels, config.latent_dim)
+        self.from_latent = nn.Linear(config.latent_dim, self.final_channels * self.final_seq_len)
 
         # ===== DECODER =====
         self.decoder_blocks = nn.ModuleList()
@@ -127,11 +138,14 @@ class CnnAEC(nn.Module):
             x = block(x)
 
         # ===== LATENT =====
-        x = self.flatten(x)
-        latent = self.to_latent(x)
+        # (B, final_channels, final_seq_len) → (B, final_seq_len, final_channels)
+        x = x.transpose(1, 2)
 
-        x = self.from_latent(latent)
-        x = x.view(B, self.final_channels, self.final_seq_len)
+        latent = self.attn_pool(x)       # (B, final_channels)
+        latent = self.to_latent(latent)  # (B, latent_dim)
+
+        x = self.from_latent(latent)                               # (B, final_channels * final_seq_len)
+        x = x.view(B, self.final_channels, self.final_seq_len)     # (B, final_channels, final_seq_len)
 
         # ===== DECODER =====
         for block in self.decoder_blocks:
@@ -165,7 +179,21 @@ class CnnAEC(nn.Module):
             x = block(x)
 
         # ===== LATENT =====
-        x = self.flatten(x)
-        latent = self.to_latent(x)
+        x = x.transpose(1, 2)
+
+        latent = self.attn_pool(x)
+        latent = self.to_latent(latent)
 
         return latent
+
+
+if __name__ == "__main__":
+    cfg = CnnAECConfig(input_dim=12, seq_len=60, hidden_channels=64, latent_dim=32, blocks=3)
+    model = CnnAEC(cfg)
+
+    x = torch.randn(8, 60, 12)
+    x_hat, latent = model(x)
+
+    print(f"Input:   {x.shape}")
+    print(f"Latent:  {latent.shape}")
+    print(f"Output:  {x_hat.shape}")

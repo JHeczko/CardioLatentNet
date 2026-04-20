@@ -57,6 +57,7 @@ class TransformerUAECTrainer:
 
         # history
         self.history = []
+        self.history_val = []
 
         # step (for resume)
         self.start_step = 1
@@ -130,15 +131,13 @@ class TransformerUAECTrainer:
             "lr": lr
         }
 
-        self.history.append(metrics)
-
         return metrics
 
     # ========================
     # Evaluation
     # ========================
     @torch.no_grad()
-    def evaluate(self, max_batches=20):
+    def evaluate(self,max_batches=20):
         if self.val_dataloader is None:
             return None
 
@@ -163,26 +162,55 @@ class TransformerUAECTrainer:
 
         return avg_loss
 
+    @torch.no_grad()
+    def test(self, test_loader):
+        if test_loader is None:
+            return None
+
+        self.model.eval()
+
+        losses = []
+
+        for i, batch in enumerate(self.val_dataloader):
+
+            if isinstance(batch, (list, tuple)):
+                batch = batch[0]
+
+            x = batch.to(self.device)
+            x_hat = self.model(x)
+            loss = self.recon_loss_fn(x_hat, x)
+            losses.append(loss.item())
+
+        avg_loss = sum(losses) / len(losses)
+        print(f"[TEST] Recon Loss: {avg_loss:.4f}")
+
+        return avg_loss
+
     # ========================
     # Checkpoint Save
     # ========================
     def _save_checkpoint(self, step):
         path = f"{self.config.checkpoint_dir}/transformer_step_{step}.pt"
         path_newest = f"{self.config.checkpoint_dir}/transformer_newest.pt"
+        path_model = f"{self.config.checkpoint_dir}/transformer_model.pt"
 
         torch.save({
             "model": self.model.state_dict(),
             "optimizer": self.optimizer.state_dict(),
             "step": step,
-            "history": self.history
+            "history": self.history,
+            "history_val": self.history_val
         }, path)
 
         torch.save({
             "model": self.model.state_dict(),
             "optimizer": self.optimizer.state_dict(),
             "step": step,
-            "history": self.history
+            "history": self.history,
+            "history_val": self.history_val
         }, path_newest)
+
+        torch.save(self.model.state_dict(), path_model)
 
     # ========================
     # Checkpoint Load
@@ -197,6 +225,7 @@ class TransformerUAECTrainer:
 
         self.start_step = checkpoint["step"] + 1
         self.history = checkpoint.get("history", [])
+        self.history_val = checkpoint.get("history_val", [])
 
         print(f"Loaded checkpoint from step {checkpoint['step']}")
 
@@ -205,9 +234,12 @@ class TransformerUAECTrainer:
     # ========================
     def _save_history(self):
         path = f"{self.config.checkpoint_dir}/transformer_history.json"
+        path_val = f"{self.config.checkpoint_dir}/transformer_history_val.json"
 
         with open(path, "w") as f:
             json.dump(self.history, f, indent=2)
+        with open(path_val, "w") as f:
+            json.dump(self.history_val, f, indent=2)
 
     # ========================
     # Train loop
@@ -216,6 +248,16 @@ class TransformerUAECTrainer:
         for step in range(self.start_step, self.config.max_iters + 1):
 
             metrics = self.train_step(step)
+            self.history.append(metrics)
+
+            if self.val_dataloader and step % self.config.eval_every == 0:
+                loss_val = self.evaluate()
+                self.history_val.append({
+                    "step": step,
+                    "val_loss": loss_val,
+                })
+
+
 
             if step % self.config.log_every == 0:
                 print(
@@ -224,8 +266,6 @@ class TransformerUAECTrainer:
                     f"LR: {metrics['lr']:.6f}"
                 )
 
-            if self.val_dataloader and step % self.config.eval_every == 0:
-                self.evaluate()
 
             if step % self.config.checkpoint_every == 0:
                 self._save_checkpoint(step)

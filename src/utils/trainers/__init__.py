@@ -1,2 +1,2 @@
-from .lstm_trainer import *
-from .transformer_trainer import *
+from .lstm_trainer import LstmVeaTrainer
+from .transformer_trainer import TransformerUAECTrainer

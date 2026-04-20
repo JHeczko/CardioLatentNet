@@ -7,6 +7,7 @@ from .utils.config.model import TransformerUAECConfig
 from .layers.blocks import EncoderBlock, DecoderBlock
 from .layers.encoding import PositionalEncoding
 from .layers.dimension import Upsampler, Downsampler
+from .layers.attention_pooling import AttentionPooling
 
 class TransformerUAEC(nn.Module):
     """Transformer-based U-shaped Autoencoder (UAEC).
@@ -154,17 +155,18 @@ class TransformerUAEC(nn.Module):
         encs = list(reversed(encs))
 
         # ----- LATENT PASS -----
-        # po wszystkich encoder blokach
+        # after all encoder blocks
         # enc_out: (B, 5, 128)
         latent = self.latent_pool(enc_out)  # (B, 128)
         latent = self.latent_proj(latent)  # (B, latent_dim)
 
-        # --- tu masz czysty wektor do klasteryzacji ---
+        # clear latent vector with Attention Pooling
 
-        # rozwiń z powrotem dla decodera
+        # then we have to back the size in order to make decoder pass
         bottleneck_seq_len = enc_out.shape[1]
         x = self.latent_unproj(latent)  # (B, 128)
         x = x.unsqueeze(1).expand(-1, bottleneck_seq_len, -1)  # (B, 5, 128)
+
         # ----- DECODER PASS -----
         # dec_out = (batch_size, seq_len/(num_encoder//2), hidden_dim)
 
@@ -255,10 +257,14 @@ class TransformerUAEC(nn.Module):
                 downsampler = next(downsamplers_iter)
                 enc_out = downsampler(enc_out)
 
-        return enc_out
+        latent = self.latent_pool(enc_out)  # (B, 128)
+        latent = self.latent_proj(latent)  # (B, latent_dim)
+
+        return latent
 
 if __name__ == "__main__":
-    model =TransformerUAEC(blocks=4, enc_dec_ratio=(1,1), num_att_heads=2, input_dim=12, hidden_dim=128, seq_len=60)
+    config = TransformerUAECConfig()
+    model =TransformerUAEC(config=config)
 
     x = torch.ones(6, 60, 12)
 

@@ -1,2 +1,2 @@
-from .full_ecg_ds import *
-from .heartbeat__ecg_ds import *
+from .full_ecg_ds import Full_ECG_DataSet
+from .heartbeat__ecg_ds import Hearbeat_ECG_DataSet

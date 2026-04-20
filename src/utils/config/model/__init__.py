@@ -1,2 +1,2 @@
-from .lstm_config import *
-from .transformer_config import *
+from .lstm_config import LSTMConfig
+from .transformer_config import TransformerUAECConfig

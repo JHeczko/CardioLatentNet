@@ -476,5 +476,5 @@ http-client.private.env.json
 
 # =-=-=-=-=-=-=-=-=-= Custom User Section =-=-=-=-=-=-=-=-=-=
 dataset/*
-checkpoints/*
+checkpoints_*/*
 # =-=-=-=-=-=-=-=-=-= END Custom User Section =-=-=-=-=-=-=-=-=-=

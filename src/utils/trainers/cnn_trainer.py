@@ -3,20 +3,24 @@ import json
 import torch
 from torch import nn
 from torch.amp import autocast, GradScaler
-from ..config.trainer import LSTMTrainerConfig
+from ..config.cnn import CnnTrainerConfig
 
 
-class LstmVeaTrainer:
-    def __init__(self, model: nn.Module, config: LSTMTrainerConfig, dataloader, val_dataloader=None):
+class CnnAECTrainer:
+    def __init__(self, model: nn.Module, dataloader, config: CnnTrainerConfig, val_dataloader=None):
         self.model = model
         self.dataloader = dataloader
         self.val_dataloader = val_dataloader
         self.config = config
 
         # device
-        self.device = torch.device(
-            config.device if torch.cuda.is_available() else "cpu"
-        )
+        if config.device == "mps" and torch.backends.mps.is_available():
+            self.device = torch.device("mps")
+        elif config.device == "cuda" and torch.cuda.is_available():
+            self.device = torch.device("cuda")
+        else:
+            self.device = torch.device("cpu")
+
         self.model.to(self.device)
 
         # optimizer
@@ -36,7 +40,7 @@ class LstmVeaTrainer:
         self.use_amp = False
         self.amp_dtype = torch.float32
 
-        if self.device.type == "cuda" and config.use_amp:
+        if self.device.type in ("cuda", "mps") and config.use_amp:
             self.use_amp = True
 
             if config.amp_dtype == "bf16":
@@ -62,24 +66,6 @@ class LstmVeaTrainer:
 
         # step (for resume)
         self.start_step = 1
-
-    # ========================
-    # MMD Loss
-    # ========================
-    def _mmd_loss(self, z):
-        z_prior = torch.randn_like(z)
-
-        def rbf_kernel(x, y):
-            x = x.unsqueeze(1)  # (B, 1, D)
-            y = y.unsqueeze(0)  # (1, B, D)
-            return torch.exp(-((x - y) ** 2).sum(-1) / z.size(1))
-
-        k_zz = rbf_kernel(z, z)
-        k_pp = rbf_kernel(z_prior, z_prior)
-        k_zp = rbf_kernel(z, z_prior)
-
-        mmd = k_zz.mean() + k_pp.mean() - 2 * k_zp.mean()
-        return self.config.mmd_weight * mmd
 
     # ========================
     # LR Scheduler
@@ -128,11 +114,8 @@ class LstmVeaTrainer:
             dtype=self.amp_dtype,
             enabled=self.use_amp
         ):
-            x_hat, mu, logvar = self.model(x)
-
-            recon_loss = self.recon_loss_fn(x_hat, x)
-            reg_loss = self._mmd_loss(mu)
-            loss = recon_loss + reg_loss
+            x_hat, _ = self.model(x)
+            loss = self.recon_loss_fn(x_hat, x)
 
         self.optimizer.zero_grad(set_to_none=True)
 
@@ -150,8 +133,6 @@ class LstmVeaTrainer:
         metrics = {
             "step": step,
             "loss": loss.item(),
-            "recon_loss": recon_loss.item(),
-            "reg_loss": reg_loss.item(),
             "lr": lr
         }
 
@@ -161,7 +142,7 @@ class LstmVeaTrainer:
     # Evaluation
     # ========================
     @torch.no_grad()
-    def evaluate(self,max_batches=1000):
+    def evaluate(self, max_batches=20):
         if self.val_dataloader is None:
             return None
 
@@ -177,19 +158,13 @@ class LstmVeaTrainer:
                 batch = batch[0]
 
             x = batch.to(self.device)
-            x_hat, _, _ = self.model(x)
-            loss = self.recon_loss_fn(x_hat, x)
-            losses.append(loss.item())
+            x_hat, _ = self.model(x)
+            losses.append(self.recon_loss_fn(x_hat, x).item())
 
         avg_loss = sum(losses) / len(losses)
-
         print(f"[EVAL] Recon Loss: {avg_loss:.4f}")
 
         return avg_loss
-
-        # ========================
-        # Evaluation
-        # ========================
 
     @torch.no_grad()
     def test(self, test_loader):
@@ -200,15 +175,13 @@ class LstmVeaTrainer:
 
         losses = []
 
-        for i, batch in enumerate(self.val_dataloader):
-
+        for batch in test_loader:
             if isinstance(batch, (list, tuple)):
                 batch = batch[0]
 
             x = batch.to(self.device)
-            x_hat, _, _ = self.model(x)
-            loss = self.recon_loss_fn(x_hat, x)
-            losses.append(loss.item())
+            x_hat, _ = self.model(x)
+            losses.append(self.recon_loss_fn(x_hat, x).item())
 
         avg_loss = sum(losses) / len(losses)
         print(f"[TEST] Recon Loss: {avg_loss:.4f}")
@@ -219,26 +192,20 @@ class LstmVeaTrainer:
     # Checkpoint Save
     # ========================
     def _save_checkpoint(self, step):
-        path = f"{self.config.checkpoint_dir}/lstm_step_{step}.pt"
-        path_newest = f"{self.config.checkpoint_dir}/lstm_newest.pt"
-        path_model = f"{self.config.checkpoint_dir}/lstm_model.pt"
+        path = f"{self.config.checkpoint_dir}/cnn_aec_step_{step}.pt"
+        path_newest = f"{self.config.checkpoint_dir}/cnn_aec_newest.pt"
+        path_model = f"{self.config.checkpoint_dir}/cnn_aec_model.pt"
 
-        torch.save({
+        state = {
             "model": self.model.state_dict(),
             "optimizer": self.optimizer.state_dict(),
             "step": step,
             "history": self.history,
-            "val_history": self.history_val
-        }, path)
+            "history_val": self.history_val
+        }
 
-        torch.save({
-            "model": self.model.state_dict(),
-            "optimizer": self.optimizer.state_dict(),
-            "step": step,
-            "history": self.history,
-            "val_history": self.history_val
-        }, path_newest)
-
+        torch.save(state, path)
+        torch.save(state, path_newest)
         torch.save(self.model.state_dict(), path_model)
 
     # ========================
@@ -246,16 +213,16 @@ class LstmVeaTrainer:
     # ========================
     def load_checkpoint(self, path=None):
         if path is None:
-            checkpoint = torch.load(f"{self.config.checkpoint_dir}/lstm_newest.pt", map_location=self.device)
-        else:
-            checkpoint = torch.load(path, map_location=self.device)
+            path = f"{self.config.checkpoint_dir}/cnn_aec_newest.pt"
+
+        checkpoint = torch.load(path, map_location=self.device)
 
         self.model.load_state_dict(checkpoint["model"])
         self.optimizer.load_state_dict(checkpoint["optimizer"])
 
         self.start_step = checkpoint["step"] + 1
         self.history = checkpoint.get("history", [])
-        self.history_val = checkpoint.get("val_history", [])
+        self.history_val = checkpoint.get("history_val", [])
 
         print(f"Loaded checkpoint from step {checkpoint['step']}")
 
@@ -263,8 +230,8 @@ class LstmVeaTrainer:
     # Save history
     # ========================
     def _save_history(self):
-        path = f"{self.config.checkpoint_dir}/lstm_history.json"
-        path_val = f"{self.config.checkpoint_dir}/lstm_history_val.json"
+        path = f"{self.config.checkpoint_dir}/cnn_aec_history.json"
+        path_val = f"{self.config.checkpoint_dir}/cnn_aec_history_val.json"
 
         with open(path, "w") as f:
             json.dump(self.history, f, indent=2)
@@ -291,13 +258,9 @@ class LstmVeaTrainer:
                 print(
                     f"[Step {step}] "
                     f"Loss: {metrics['loss']:.4f} | "
-                    f"Recon: {metrics['recon_loss']:.4f} | "
-                    f"MMD: {metrics['reg_loss']:.4f} | "
                     f"LR: {metrics['lr']:.6f}"
                 )
 
             if step % self.config.checkpoint_every == 0:
                 self._save_checkpoint(step)
                 self._save_history()
-
-        return self.history, self.history_val
