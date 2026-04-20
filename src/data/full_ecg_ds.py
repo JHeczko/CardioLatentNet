@@ -4,6 +4,8 @@ import ast
 import wfdb
 from typing import Literal
 from sklearn.preprocessing import MultiLabelBinarizer
+from tqdm import tqdm
+
 
 class Full_ECG_DataSet(torch.utils.data.Dataset):
 
@@ -68,7 +70,7 @@ class Full_ECG_DataSet(torch.utils.data.Dataset):
 
             name_to_index = {v: i for i, v in enumerate(agg_df.diagnostic_class.unique())}
             labels = []
-            for codes in Y.scp_codes:
+            for codes in tqdm(Y.scp_codes, desc="Processing SCP codes"):
                 tmp = []
                 for key, value in codes.items():
                     if (key in agg_df.index) and (value > 0.5):

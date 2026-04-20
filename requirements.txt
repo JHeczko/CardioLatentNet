@@ -1,8 +1,9 @@
 matplotlib
 neurokit2
 numpy
-pandas<=2.3.3
+pandas<=2.2.2
 scikit-learn
 seaborn
 umap-learn
 wfdb
+tqdm

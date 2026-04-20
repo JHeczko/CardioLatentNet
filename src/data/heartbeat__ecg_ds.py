@@ -7,6 +7,8 @@ from sklearn.preprocessing import MultiLabelBinarizer
 import neurokit2 as nk
 from torch.utils.data import DataLoader
 
+from tqdm import tqdm
+
 import timeit
 
 
@@ -60,7 +62,7 @@ class Hearbeat_ECG_DataSet(torch.utils.data.Dataset):
 
             name_to_index = {v: i for i, v in enumerate(agg_df.diagnostic_class.unique())}
             labels = []
-            for codes in Y.scp_codes:
+            for codes in tqdm(Y.scp_codes, desc="Processing SCP codes"):
                 tmp = []
                 for key, value in codes.items():
                     if (key in agg_df.index) and (value > 0.5):
@@ -86,7 +88,7 @@ class Hearbeat_ECG_DataSet(torch.utils.data.Dataset):
 
         self.X_files = []
 
-        for file, label in zip(X, y):
+        for file, label in tqdm(zip(X, y), total=len(X), desc="Processing ECG files", unit="file"):
             series, _ = wfdb.rdsamp(path + file)
             II_series = series[:,1]
             cleaned_series = nk.ecg_clean(II_series, sampling_rate=self.sampling_rate)
