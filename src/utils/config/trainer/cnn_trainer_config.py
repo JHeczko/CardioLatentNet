@@ -18,6 +18,9 @@ class CnnTrainerConfig:
     # scheduler
     warmup_iters: int = 2_000
 
+    # early stopper
+    early_stopper_patience: int = 10
+
     # AMP
     use_amp: bool = True
     amp_dtype: Literal["fp16", "bf16"] = "bf16"

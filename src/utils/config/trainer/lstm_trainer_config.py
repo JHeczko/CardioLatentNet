@@ -18,6 +18,9 @@ class LstmTrainerConfig:
     # scheduler
     warmup_iters: int = 2_000
 
+    # early stopper
+    early_stopper_patience: int = 10
+
     # MMD
     mmd_weight: float = 1.0
 
