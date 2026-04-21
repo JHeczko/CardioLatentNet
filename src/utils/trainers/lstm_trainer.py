@@ -137,7 +137,7 @@ class LstmVaeTrainer:
         if isinstance(batch, (list, tuple)):
             batch = batch[0]
 
-        return batch.to(self.device)
+        return batch.to(self.device, non_blocking=True)
 
     # ========================
     # Train step

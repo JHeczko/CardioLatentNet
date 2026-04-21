@@ -8,9 +8,9 @@ from src import LstmVae, TransformerAec, CnnAec
 
 def run_training(train_ds, val_ds, test_ds, model_cls, trainer_cls, model_cfg, trainer_cfg, batch_sizes,
                  checkpoint_name, resume_training=False):
-    train_loader = DataLoader(train_ds, shuffle=True, batch_size=batch_sizes['train'])
-    val_loader = DataLoader(val_ds, shuffle=False, batch_size=batch_sizes['val'])
-    test_loader = DataLoader(test_ds, shuffle=False, batch_size=len(test_ds))
+    train_loader = DataLoader(train_ds, shuffle=True, batch_size=batch_sizes['train'], pin_memory=True, num_workers=8, persistent_workers=True)
+    val_loader = DataLoader(val_ds, shuffle=False, batch_size=batch_sizes['val'], pin_memory=True, num_workers=8, persistent_workers=True)
+    test_loader = DataLoader(test_ds, shuffle=False, batch_size=len(test_ds), pin_memory=True, num_workers=8, persistent_workers=True)
 
     model = model_cls(config=model_cfg)
     trainer = trainer_cls(model=model, dataloader=train_loader, val_dataloader=val_loader, config=trainer_cfg)
@@ -37,7 +37,7 @@ if __name__ == '__main__':
             "model_cls": CnnAec,
             "trainer_cls": CnnAecTrainer,
             "model_cfg": CnnAecConfig(),
-            "trainer_cfg": CnnTrainerConfig(max_iters=300, checkpoint_every=100, eval_every=100, device='cpu'),
+            "trainer_cfg": CnnTrainerConfig(),
             "batch_sizes": {'train': 128, 'val': 512},
             "ckpt": "cnn_newest.pt"
         },
@@ -46,7 +46,7 @@ if __name__ == '__main__':
             "model_cls": TransformerAec,
             "trainer_cls": TransformerAecTrainer,
             "model_cfg": TransformerAecConfig(),
-            "trainer_cfg": TransformerTrainerConfig(max_iters=300, checkpoint_every=100, eval_every=100, device='cpu'),
+            "trainer_cfg": TransformerTrainerConfig(),
             "batch_sizes": {'train': 64, 'val': 512},
             "ckpt": "transformer_newest.pt"
         },
@@ -55,7 +55,7 @@ if __name__ == '__main__':
             "model_cls": LstmVae,
             "trainer_cls": LstmVaeTrainer,
             "model_cfg": LstmVaeConfig(),
-            "trainer_cfg": LstmTrainerConfig(max_iters=300, checkpoint_every=100, eval_every=100, device='cpu'),
+            "trainer_cfg": LstmTrainerConfig(),
             "batch_sizes": {'train': 128, 'val': 512},
             "ckpt": "lstm_newest.pt"
         },

@@ -74,7 +74,7 @@ class CnnAecTrainer:
     # ========================
     # Early Stopper
     # ========================
-    def _early_stopper(self, val_loss, step):
+    def _early_stopper(self, val_loss):
         if val_loss < self._best_val_loss:
             self._best_val_loss = val_loss
             self._patience_counter = 0
@@ -123,7 +123,7 @@ class CnnAecTrainer:
         if isinstance(batch, (list, tuple)):
             batch = batch[0]
 
-        return batch.to(self.device)
+        return batch.to(self.device, non_blocking=True)
 
     # ========================
     # Train step
@@ -290,7 +290,7 @@ class CnnAecTrainer:
                     "val_loss": loss_val,
                 })
 
-                if self._early_stopper(loss_val, step):
+                if self._early_stopper(loss_val):
                     self._save_checkpoint(step)
                     self._save_history()
                     return self.history, self.history_val
