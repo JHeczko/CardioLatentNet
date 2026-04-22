@@ -55,7 +55,9 @@ def plot_training_history(train_history, val_history, model_title = "", path=Non
         ax2.text(0.5, 0.5, 'No Validation Data', ha='center', va='center')
 
     plt.tight_layout()
-    plt.show()
 
     if path is not None:
         plt.savefig(path)
+
+    plt.show()
+    plt.close()

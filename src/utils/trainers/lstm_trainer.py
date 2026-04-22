@@ -190,7 +190,7 @@ class LstmVaeTrainer:
     # Evaluation
     # ========================
     @torch.no_grad()
-    def evaluate(self, max_batches=1000):
+    def evaluate(self, max_batches=10000):
         if self.val_dataloader is None:
             return None
 
@@ -206,11 +206,16 @@ class LstmVaeTrainer:
                 batch = batch[0]
 
             x = batch.to(self.device)
-            x_hat, _, _ = self.model(x)
-            losses.append(self.recon_loss_fn(x_hat, x).item())
+            x_hat, mu, _ = self.model(x)
+
+            recon_loss = self.recon_loss_fn(x_hat, x)
+            reg_loss = self._mmd_loss(mu)
+
+            loss = recon_loss + reg_loss
+            losses.append(loss.item())
 
         avg_loss = sum(losses) / len(losses)
-        print(f"[EVAL] Recon Loss: {avg_loss:.4f}")
+        print(f"[EVAL] Loss(mmd + recon): {avg_loss:.4f}")
 
         return avg_loss
 

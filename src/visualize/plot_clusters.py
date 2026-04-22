@@ -42,7 +42,10 @@ def visualize_latents(latents, targets, method:Literal['tsne', 'umap', 'pca']="t
     plt.title(f"Latent Space Visualization for {model_title} ({method})")
     plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
     plt.tight_layout()
-    plt.show()
 
     if path is not None:
         plt.savefig(path)
+
+    plt.show()
+    plt.close()
+
