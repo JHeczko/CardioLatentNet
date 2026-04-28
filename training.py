@@ -69,6 +69,7 @@ if __name__ == '__main__':
 
 
     configs = [
+        # ======== CNN CONFS ========
         {
             "name": "CNN",
             "model_cls": CnnAec,
@@ -80,21 +81,215 @@ if __name__ == '__main__':
             "resume_training": False
         },
         {
+            "name": "CNN-fast&stable",
+            "model_cls": CnnAec,
+            "trainer_cls": CnnAecTrainer,
+            "model_cfg": CnnAecConfig(
+                hidden_channels=128,
+                latent_dim=64,
+                blocks=3,
+                dropout=0.15
+            ),
+            "trainer_cfg": CnnTrainerConfig(
+                early_stopper_patience=15,
+                lr=1e-3,
+                checkpoint_dir="checkpoints_cnn_fast_and_stable"),
+            "batch_sizes": {'train': 128, 'val': 512},
+            "ckpt": "cnn_newest.pt",
+            "resume_training": False
+        },
+        {
+            "name": "CNN-deep",
+            "model_cls": CnnAec,
+            "trainer_cls": CnnAecTrainer,
+            "model_cfg": CnnAecConfig(
+                hidden_channels=128,
+                latent_dim=64,
+                blocks=5,
+                dropout=0.2
+            ),
+            "trainer_cfg": CnnTrainerConfig(
+                early_stopper_patience=15,
+                checkpoint_dir="checkpoints_cnn_deep"),
+            "batch_sizes": {'train': 128, 'val': 512},
+            "ckpt": "cnn_newest.pt",
+            "resume_training": False
+        },
+        {
+            "name": "CNN-hard-bottleneck",
+            "model_cls": CnnAec,
+            "trainer_cls": CnnAecTrainer,
+            "model_cfg": CnnAecConfig(
+                hidden_channels=128,
+                latent_dim=16,
+                blocks=3,
+                dropout=0.2
+            ),
+            "trainer_cfg": CnnTrainerConfig(
+                early_stopper_patience=15,
+                checkpoint_dir="checkpoints_cnn_deep"),
+            "batch_sizes": {'train': 128, 'val': 512},
+            "ckpt": "cnn_newest.pt",
+            "resume_training": False
+        },
+        # ======= Transformer config =======
+        {
             "name": "TRANSFORMER",
             "model_cls": TransformerAec,
             "trainer_cls": TransformerAecTrainer,
             "model_cfg": TransformerAecConfig(),
-            "trainer_cfg": TransformerTrainerConfig(),
+            "trainer_cfg": TransformerTrainerConfig(checkpoint_dir="checkpoints_transformer_basic"),
             "batch_sizes": {'train': 128, 'val': 512},
             "ckpt": "transformer_newest.pt",
             "resume_training": False
         },
         {
-            "name": "LSTM VAE",
+            "name": "TRANSFORMER-stable-baseline",
+            "model_cls": TransformerAec,
+            "trainer_cls": TransformerAecTrainer,
+            "model_cfg": TransformerAecConfig(
+                blocks=4,
+                hidden_dim=192,
+                num_att_heads=6,
+                latent_dim=64,
+                dropout=0.15
+            ),
+            "trainer_cfg": TransformerTrainerConfig(
+                lr=2e-4,
+                weight_decay=1e-4,
+                checkpoint_dir="checkpoints_transformer_baseline"),
+            "batch_sizes": {'train': 96, 'val': 512},
+            "ckpt": "transformer_newest.pt",
+            "resume_training": False
+        },
+        {
+            "name": "TRANSFORMER-big-boy",
+            "model_cls": TransformerAec,
+            "trainer_cls": TransformerAecTrainer,
+            "model_cfg": TransformerAecConfig(
+                blocks=6,
+                hidden_dim=256,
+                num_att_heads=8,
+                latent_dim=128,
+                dropout=0.2,
+            ),
+            "trainer_cfg": TransformerTrainerConfig(
+                lr=2e-4,
+                weight_decay=1e-4,
+                checkpoint_dir="checkpoints_transformer_bigboy"
+            ),
+            "batch_sizes": {'train': 96, 'val': 512},
+            "ckpt": "transformer_newest.pt",
+            "resume_training": False
+        },
+        {
+            "name": "TRANSFORMER-no-reg",
+            "model_cls": TransformerAec,
+            "trainer_cls": TransformerAecTrainer,
+            "model_cfg": TransformerAecConfig(
+                blocks=4,
+                hidden_dim=256,
+                latent_dim=64,
+                dropout=0.05
+            ),
+            "trainer_cfg": TransformerTrainerConfig(
+                lr=1e-4,
+                weight_decay=1e-5,
+                checkpoint_dir="checkpoints_transformer_no_reg"
+            ),
+            "batch_sizes": {'train': 64, 'val': 512},
+            "ckpt": "transformer_newest.pt",
+            "resume_training": False
+        },
+        # ======= LSTM VAE config =======
+        {
+            "name": "LSTM-VAE",
             "model_cls": LstmVae,
             "trainer_cls": LstmVaeTrainer,
-            "model_cfg": LstmVaeConfig(latent_dim=64),
-            "trainer_cfg": LstmTrainerConfig(mmd_weight=0.7),
+            "model_cfg": LstmVaeConfig(
+                latent_dim=64
+            ),
+            "trainer_cfg": LstmTrainerConfig(
+                mmd_weight=0.7
+            ),
+            "batch_sizes": {'train': 128, 'val': 512},
+            "ckpt": "lstm_newest.pt",
+            "resume_training": False
+        },
+        {
+            "name": "LSTM-VAE-baseline-pp",
+            "model_cls": LstmVae,
+            "trainer_cls": LstmVaeTrainer,
+            "model_cfg": LstmVaeConfig(
+                blocks=3,
+                latent_dim=96,
+                starting_channel_size=64,
+                dropout=0.2
+            ),
+            "trainer_cfg": LstmTrainerConfig(
+                lr=2e-4,
+                warmup_iters=4000,
+                mmd_weight=0.1,
+                checkpoint_dir="checkpoints_lstm_baseline_pp"
+             ),
+            "batch_sizes": {'train': 128, 'val': 512},
+            "ckpt": "lstm_newest.pt",
+            "resume_training": False
+        },
+        {
+            "name": "LSTM-VAE-strong-latent",
+            "model_cls": LstmVae,
+            "trainer_cls": LstmVaeTrainer,
+            "model_cfg": LstmVaeConfig(
+                blocks=3,
+                latent_dim=64,
+                starting_channel_size=64,
+                dropout=0.2
+            ),
+            "trainer_cfg": LstmTrainerConfig(
+                lr=2e-4,
+                mmd_weight=0.5,
+                checkpoint_dir="checkpoints_lstm_strong_latent"
+            ),
+            "batch_sizes": {'train': 128, 'val': 512},
+            "ckpt": "lstm_newest.pt",
+            "resume_training": False
+        },
+        {
+            "name": "LSTM-VAE-big-model",
+            "model_cls": LstmVae,
+            "trainer_cls": LstmVaeTrainer,
+            "model_cfg": LstmVaeConfig(
+                blocks=4,
+                latent_dim=128,
+                starting_channel_size=64,
+                dropout=0.25
+            ),
+            "trainer_cfg": LstmTrainerConfig(
+                lr=1.5e-4,
+                warmup_iters=5000,
+                mmd_weight=0.2,
+                checkpoint_dir="checkpoints_lstm_big_boy"
+            ),
+            "batch_sizes": {'train': 96, 'val': 512},
+            "ckpt": "lstm_newest.pt",
+            "resume_training": False
+        },
+        {
+            "name": "LSTM-VAE-regularized-latent",
+            "model_cls": LstmVae,
+            "trainer_cls": LstmVaeTrainer,
+            "model_cfg": LstmVaeConfig(
+                blocks=3,
+                latent_dim=32,
+                starting_channel_size=64,
+                dropout=0.3
+            ),
+            "trainer_cfg": LstmTrainerConfig(
+                lr=2e-4,
+                mmd_weight=1.0,
+                checkpoint_dir="checkpoints_lstm_reg_latent"
+            ),
             "batch_sizes": {'train': 128, 'val': 512},
             "ckpt": "lstm_newest.pt",
             "resume_training": False

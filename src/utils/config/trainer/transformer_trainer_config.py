@@ -8,7 +8,6 @@ class TransformerTrainerConfig:
     max_iters: int = 100_000
     log_every: int = 100
     eval_every: int = 1_000
-    batch_size: int = 64
 
     # optimization
     lr: float = 1e-4

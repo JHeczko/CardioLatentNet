@@ -1,4 +1,6 @@
 import json
+import os
+
 import torch
 from torch.utils.data import DataLoader
 from src.visualize import plot_training_history, visualize_latents
@@ -8,14 +10,71 @@ from src.utils.config.model import LstmVaeConfig, TransformerAecConfig, CnnAecCo
 from src import TransformerAec, LstmVae, CnnAec
 
 
+def _run_analysis(model, run_name, model_info, test_loader, device):
+    plots_dir = model_info["plots_dir"]
+    x_hats, xs, ys = [], [], []
+    latents = [] if hasattr(model, "encode") else None
+
+    mse_sum = mae_sum = signal_power_sum = noise_power_sum = 0.0
+    total_elements = 0
+
+    with torch.no_grad():
+        for batch in test_loader:
+            if isinstance(batch, (list, tuple)):
+                x_batch, y_batch = batch
+                xs.append(x_batch)
+                ys.append(y_batch)
+            else:
+                x_batch = batch
+
+            x_batch = x_batch.to(device)
+            out = model(x_batch)
+            x_hat_batch = (out[0] if isinstance(out, tuple) else out).cpu()
+            x_batch_cpu = x_batch.cpu()
+            x_hats.append(x_hat_batch)
+
+            diff = x_hat_batch - x_batch_cpu
+            mse_sum          += torch.sum(diff ** 2).item()
+            mae_sum          += torch.sum(torch.abs(diff)).item()
+            signal_power_sum += torch.sum(x_batch_cpu ** 2).item()
+            noise_power_sum  += torch.sum(diff ** 2).item()
+            total_elements   += diff.numel()
+
+            if latents is not None:
+                latents.append(model.encode(x_batch).cpu())
+
+    x_hat = torch.cat(x_hats, dim=0)
+    x     = torch.cat(xs, dim=0)
+    y     = torch.cat(ys, dim=0)
+
+    mse  = mse_sum / total_elements
+    mae  = mae_sum / total_elements
+    rmse = mse ** 0.5
+    snr  = 10 * torch.log10(torch.tensor(signal_power_sum / (noise_power_sum + 1e-8))).item()
+
+    print(f"\n===== {run_name} BENCHMARK =====")
+    print(f"MSE  : {mse:.6f}")
+    print(f"MAE  : {mae:.6f}")
+    print(f"RMSE : {rmse:.6f}")
+    print(f"SNR  : {snr:.2f} dB")
+    print(f"Sample recon error (first): {torch.mean(torch.abs(x_hat[0] - x[0])).item():.6f}")
+
+    if latents is not None:
+        latent = torch.cat(latents, dim=0)
+        for method in ('umap', 'tsne', 'pca'):
+            visualize_latents(
+                latent, y,
+                model_title=run_name,
+                method=method,
+                path=os.path.join(plots_dir, f"{run_name}_latent_{method}.png"),
+            )
+        print(f"Latent mean: {latent.mean().item():.4f}  std: {latent.std(dim=0).mean().item():.4f}")
+
+
 def process_model(model_info, test_loader):
+    os.makedirs(model_info["plots_dir"], exist_ok=True)
+
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-    model = model_info['cls'](config=model_info['config']).to(device)
-    model.eval()
-
-    ckpt_path = f"{model_info['trainer_cfg'].checkpoint_dir}/{model_info['ckpt']}"
-    model.load_state_dict(torch.load(ckpt_path, map_location=device))
 
     # ===== LOAD HISTORY =====
     with open(f"{model_info['trainer_cfg'].checkpoint_dir}/{model_info['hist']}") as f:
@@ -27,103 +86,22 @@ def process_model(model_info, test_loader):
         history,
         history_val,
         model_title=model_info['name'],
-        path=f"{model_info['name']}_history.png"
+        path=os.path.join(model_info["plots_dir"], f"{model_info['name']}_history.png"),
     )
 
-    # ===== INIT =====
-    x_hats = []
-    xs = []
-    ys = []
-    latents = [] if hasattr(model, "encode") else None
+    # ===== ANALIZUJEMY OBA CHECKPOINTY =====
+    checkpoints_to_eval = [
+        (model_info['ckpt'],      model_info['name']),
+        (model_info['best_ckpt'], model_info['name'] + "_Best"),
+    ]
 
-    mse_sum = 0.0
-    mae_sum = 0.0
-    signal_power_sum = 0.0
-    noise_power_sum = 0.0
-    total_elements = 0
+    for ckpt_file, run_name in checkpoints_to_eval:
+        m = model_info['cls'](config=model_info['config']).to(device)
+        m.eval()
+        ckpt_path = f"{model_info['trainer_cfg'].checkpoint_dir}/{ckpt_file}"
+        m.load_state_dict(torch.load(ckpt_path, map_location=device))
+        _run_analysis(m, run_name, model_info, test_loader, device)
 
-    # ===== MAIN LOOP (single pass) =====
-    with torch.no_grad():
-        for batch in test_loader:
-
-            # handle (x, y)
-            if isinstance(batch, (list, tuple)):
-                x_batch, y_batch = batch
-                xs.append(x_batch)
-                ys.append(y_batch)
-            else:
-                x_batch = batch
-
-            x_batch = x_batch.to(device)
-
-            # ===== FORWARD =====
-            out = model(x_batch)
-
-            if isinstance(out, tuple):  # VAE
-                x_hat_batch = out[0]
-            else:
-                x_hat_batch = out
-
-            x_hat_batch = x_hat_batch.cpu()
-            x_batch_cpu = x_batch.cpu()
-
-            x_hats.append(x_hat_batch)
-
-            # ===== METRICS (streaming) =====
-            diff = x_hat_batch - x_batch_cpu
-
-            mse_sum += torch.sum(diff ** 2).item()
-            mae_sum += torch.sum(torch.abs(diff)).item()
-
-            signal_power_sum += torch.sum(x_batch_cpu ** 2).item()
-            noise_power_sum += torch.sum(diff ** 2).item()
-
-            total_elements += diff.numel()
-
-            # ===== LATENT =====
-            if latents is not None:
-                z = model.encode(x_batch)
-                latents.append(z.cpu())
-
-    # ===== FINAL TENSORS =====
-    x_hat = torch.cat(x_hats, dim=0)
-    y = torch.cat(ys, dim=0)
-    x = torch.cat(xs, dim=0)
-
-    # ===== FINAL METRICS =====
-    mse = mse_sum / total_elements
-    mae = mae_sum / total_elements
-    rmse = mse ** 0.5
-    snr = 10 * torch.log10(torch.tensor(signal_power_sum / (noise_power_sum + 1e-8))).item()
-
-    print(f"\n===== {model_info['name']} BENCHMARK =====")
-    print(f"MSE  : {mse:.6f}")
-    print(f"MAE  : {mae:.6f}")
-    print(f"RMSE : {rmse:.6f}")
-    print(f"SNR  : {snr:.2f} dB")
-
-    # ===== LATENT VIS =====
-    if latents is not None:
-        latent = torch.cat(latents, dim=0)
-
-        visualize_latents(latent, y, model_title=model_info['name'], method='umap',
-                          path=f"{model_info['name']}_latent_umap.png")
-        visualize_latents(latent, y, model_title=model_info['name'], method='tsne',
-                          path=f"{model_info['name']}_latent_tsne.png")
-        visualize_latents(latent, y, model_title=model_info['name'], method='pca',
-                          path=f"{model_info['name']}_latent_pca.png")
-
-        # ===== LATENT STATS =====
-        latent_std = latent.std(dim=0).mean().item()
-        latent_mean = latent.mean().item()
-
-        print("\nLatent stats:")
-        print(f"Mean: {latent_mean:.4f}")
-        print(f"Std : {latent_std:.4f}")
-
-    # ===== QUICK RECON CHECK =====
-    diff_sample = torch.mean(torch.abs(x_hat[0] - x[0])).item()
-    print(f"\nSample reconstruction error (first sample): {diff_sample:.6f}")
 
 if __name__ == "__main__":
     test_ds = Hearbeat_ECG_DataSet(path="./dataset/ptb_xl/", mode="test")
@@ -136,36 +114,33 @@ if __name__ == "__main__":
             "config": LstmVaeConfig(),
             "trainer_cfg": LstmTrainerConfig(checkpoint_dir="checkpoints_lstm_ver1"),
             "ckpt": "lstm_model.pt",
+            "best_ckpt": "lstm_best.pt",
             "hist": "lstm_history.json",
-            "hist_val": "lstm_history_val.json"
+            "hist_val": "lstm_history_val.json",
+            "plots_dir": "plots/plots_lstm_ver1",
         },
-        {
-            "name": "LSTM_VAE_Best_Model",
-            "cls": LstmVae,
-            "config": LstmVaeConfig(),
-            "trainer_cfg": LstmTrainerConfig(checkpoint_dir="checkpoints_lstm_ver1"),
-            "ckpt": "lstm_best.pt",
-            "hist": "lstm_history.json",
-            "hist_val": "lstm_history_val.json"
-        }
         # {
         #     "name": "Transformer",
         #     "cls": TransformerAec,
         #     "config": TransformerAecConfig(),
         #     "trainer_cfg": TransformerTrainerConfig(),
         #     "ckpt": "transformer_model.pt",
+        #     "best_ckpt": "transformer_best.pt",
         #     "hist": "transformer_history.json",
-        #     "hist_val": "transformer_history_val.json"
+        #     "hist_val": "transformer_history_val.json",
+        #     "plots_dir": "plots/plots_transformer",
         # },
-        # {
-        #     "name": "CNN",
-        #     "cls": CnnAec,
-        #     "config": CnnAecConfig(),
-        #     "trainer_cfg": CnnTrainerConfig(),
-        #     "ckpt": "cnn_model.pt",
-        #     "hist": "cnn_history.json",
-        #     "hist_val": "cnn_history_val.json"
-        # }
+        {
+            "name": "CNN",
+            "cls": CnnAec,
+            "config": CnnAecConfig(),
+            "trainer_cfg": CnnTrainerConfig(checkpoint_dir="checkpoints_cnn_ver1"),
+            "ckpt": "cnn_model.pt",
+            "best_ckpt": "cnn_best.pt",
+            "hist": "cnn_history.json",
+            "hist_val": "cnn_history_val.json",
+            "plots_dir": "plots/plots_cnn_ver1",
+        },
     ]
 
     for model_info in models:
