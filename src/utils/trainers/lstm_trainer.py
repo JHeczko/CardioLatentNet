@@ -14,9 +14,14 @@ class LstmVaeTrainer:
         self.config = config
 
         # device
-        self.device = torch.device(
-            config.device if torch.cuda.is_available() else "cpu"
-        )
+        # device
+        if config.device == "mps" and torch.backends.mps.is_available():
+            self.device = torch.device("mps")
+        elif config.device == "cuda" and torch.cuda.is_available():
+            self.device = torch.device("cuda")
+            torch.backends.cudnn.benchmark = True
+        else:
+            self.device = torch.device("cpu")
         self.model.to(self.device)
 
         # optimizer
@@ -99,9 +104,17 @@ class LstmVaeTrainer:
         z_prior = torch.randn_like(z)
 
         def rbf_kernel(x, y):
-            x = x.unsqueeze(1)  # (B, 1, D)
-            y = y.unsqueeze(0)  # (1, B, D)
-            return torch.exp(-((x - y) ** 2).sum(-1) / z.size(1))
+            # x: (B, D), y: (B, D) -> zwraca (B, B)
+            x_sq = x.pow(2).sum(dim=-1, keepdim=True)  # (B, 1)
+            y_sq = y.pow(2).sum(dim=-1).unsqueeze(0)  # (1, B)
+
+            # Mnożenie macierzy: x @ y.T
+            cross_term = torch.mm(x, y.t())
+
+            # clamp(min=0) zabezpiecza przed błędami numerycznymi (ujemnymi ułamkami)
+            dist = (x_sq + y_sq - 2 * cross_term).clamp(min=0)
+
+            return torch.exp(-dist / z.size(1))
 
         k_zz = rbf_kernel(z, z)
         k_pp = rbf_kernel(z_prior, z_prior)
@@ -214,6 +227,8 @@ class LstmVaeTrainer:
             loss = recon_loss + reg_loss
             losses.append(loss.item())
 
+            del x, x_hat, mu
+
         avg_loss = sum(losses) / len(losses)
         print(f"[EVAL] Loss(mmd + recon): {avg_loss:.4f}")
 
@@ -236,6 +251,8 @@ class LstmVaeTrainer:
             x_hat, _, _ = self.model(x)
             losses.append(self.recon_loss_fn(x_hat, x).item())
 
+            del x, x_hat
+
         avg_loss = sum(losses) / len(losses)
         print(f"[TEST] Recon Loss: {avg_loss:.4f}")
 
@@ -253,6 +270,8 @@ class LstmVaeTrainer:
             "model": self.model.state_dict(),
             "optimizer": self.optimizer.state_dict(),
             "step": step,
+            "best_val_loss": self._best_val_loss,
+            "patience_counter": self._patience_counter,
             "history": self.history,
             "history_val": self.history_val
         }
@@ -272,6 +291,9 @@ class LstmVaeTrainer:
 
         self.model.load_state_dict(checkpoint["model"])
         self.optimizer.load_state_dict(checkpoint["optimizer"])
+
+        self._patience_counter = checkpoint["patience_counter"]
+        self._best_val_loss = checkpoint["best_val_loss"]
 
         self.start_step = checkpoint["step"] + 1
         self.history = checkpoint.get("history", [])

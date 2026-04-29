@@ -18,10 +18,12 @@ class CnnAecTrainer:
             self.device = torch.device("mps")
         elif config.device == "cuda" and torch.cuda.is_available():
             self.device = torch.device("cuda")
+            torch.backends.cudnn.benchmark = True
         else:
             self.device = torch.device("cpu")
 
         self.model.to(self.device)
+        self.model = torch.compile(self.model)
 
         # optimizer
         self.optimizer = torch.optim.AdamW(
@@ -171,7 +173,7 @@ class CnnAecTrainer:
     # Evaluation
     # ========================
     @torch.no_grad()
-    def evaluate(self, max_batches=20):
+    def evaluate(self, max_batches=200):
         if self.val_dataloader is None:
             return None
 
@@ -189,6 +191,8 @@ class CnnAecTrainer:
             x = batch.to(self.device)
             x_hat, _ = self.model(x)
             losses.append(self.recon_loss_fn(x_hat, x).item())
+
+            del x, x_hat
 
         avg_loss = sum(losses) / len(losses)
         print(f"[EVAL] Recon Loss: {avg_loss:.4f}")
@@ -212,6 +216,8 @@ class CnnAecTrainer:
             x_hat, _ = self.model(x)
             losses.append(self.recon_loss_fn(x_hat, x).item())
 
+            del x, x_hat
+
         avg_loss = sum(losses) / len(losses)
         print(f"[TEST] Recon Loss: {avg_loss:.4f}")
 
@@ -229,6 +235,8 @@ class CnnAecTrainer:
             "model": self.model.state_dict(),
             "optimizer": self.optimizer.state_dict(),
             "step": step,
+            "best_val_loss": self._best_val_loss,
+            "patience_counter": self._patience_counter,
             "history": self.history,
             "history_val": self.history_val
         }
@@ -248,6 +256,10 @@ class CnnAecTrainer:
 
         self.model.load_state_dict(checkpoint["model"])
         self.optimizer.load_state_dict(checkpoint["optimizer"])
+
+        self._patience_counter = checkpoint["patience_counter"]
+        self._best_val_loss = checkpoint["best_val_loss"]
+
 
         self.start_step = checkpoint["step"] + 1
         self.history = checkpoint.get("history", [])
@@ -283,6 +295,7 @@ class CnnAecTrainer:
                     f"LR: {metrics['lr']:.6f}"
                 )
 
+            # Validate model and EArly Stop check
             if self.val_dataloader and step % self.config.eval_every == 0:
                 loss_val = self.evaluate()
                 self.history_val.append({
@@ -295,7 +308,7 @@ class CnnAecTrainer:
                     self._save_history()
                     return self.history, self.history_val
 
-
+            # Print
             if step % self.config.checkpoint_every == 0:
                 self._save_checkpoint(step)
                 self._save_history()

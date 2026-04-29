@@ -1,9 +1,12 @@
+import gc
 import os.path
 import os
 import json
+import traceback
 from dataclasses import asdict
 from datetime import datetime
 
+import torch.cuda
 from torch.utils.data import DataLoader
 from src.utils.trainers import LstmVaeTrainer, TransformerAecTrainer, CnnAecTrainer
 from src.utils.config.trainer import LstmTrainerConfig, TransformerTrainerConfig, CnnTrainerConfig
@@ -13,22 +16,34 @@ from src import LstmVae, TransformerAec, CnnAec
 
 def run_training(train_ds, val_ds, test_ds, model_cls, trainer_cls, model_cfg, trainer_cfg, batch_sizes,
                  checkpoint_name = None, resume_training=False):
-    train_loader = DataLoader(train_ds, shuffle=True, batch_size=batch_sizes['train'], pin_memory=True, num_workers=8, persistent_workers=True)
-    val_loader = DataLoader(val_ds, shuffle=False, batch_size=batch_sizes['val'], pin_memory=True, num_workers=8, persistent_workers=True)
-    test_loader = DataLoader(test_ds, shuffle=False, batch_size=len(test_ds), pin_memory=True, num_workers=8, persistent_workers=True)
+    try:
+        train_loader = DataLoader(train_ds, shuffle=True, batch_size=batch_sizes['train'], pin_memory=True, num_workers=8, persistent_workers=True)
+        val_loader = DataLoader(val_ds, shuffle=False, batch_size=batch_sizes['val'], pin_memory=True, num_workers=8, persistent_workers=True)
+        test_loader = DataLoader(test_ds, shuffle=False, batch_size=len(test_ds), pin_memory=True, num_workers=8, persistent_workers=True)
 
-    model = model_cls(config=model_cfg)
-    trainer = trainer_cls(model=model, dataloader=train_loader, val_dataloader=val_loader, config=trainer_cfg)
+        model = model_cls(config=model_cfg)
+        trainer = trainer_cls(model=model, dataloader=train_loader, val_dataloader=val_loader, config=trainer_cfg)
 
-    if resume_training:
-        trainer.load_checkpoint()
+        if resume_training:
+            trainer.load_checkpoint()
 
-    trainer.train()
-    trainer.test(test_loader)
+        trainer.train()
+        trainer.test(test_loader)
 
-    return model
+        return model
+    except Exception as e:
+        print(f"\n[ERROR] Model {model_cls.__name__} wywalił się z błędem:")
+        print(traceback.format_exc())
 
+        if 'model' in locals():
+            del model
+        if 'trainer' in locals():
+            del trainer
 
+        torch.cuda.empty_cache()
+        gc.collect()
+
+        return None
 
 def save_experiment_config(cfg, checkpoint_dir):
     """
@@ -71,7 +86,7 @@ if __name__ == '__main__':
     configs = [
         # ======== CNN CONFS ========
         {
-            "name": "CNN",
+            "name": "CNN-baseline",
             "model_cls": CnnAec,
             "trainer_cls": CnnAecTrainer,
             "model_cfg": CnnAecConfig(),
@@ -134,7 +149,7 @@ if __name__ == '__main__':
         },
         # ======= Transformer config =======
         {
-            "name": "TRANSFORMER",
+            "name": "TRANSFORMER-baseline",
             "model_cls": TransformerAec,
             "trainer_cls": TransformerAecTrainer,
             "model_cfg": TransformerAecConfig(),
@@ -203,7 +218,7 @@ if __name__ == '__main__':
         },
         # ======= LSTM VAE config =======
         {
-            "name": "LSTM-VAE",
+            "name": "LSTM-VAE-baseline",
             "model_cls": LstmVae,
             "trainer_cls": LstmVaeTrainer,
             "model_cfg": LstmVaeConfig(
@@ -300,7 +315,7 @@ if __name__ == '__main__':
         print(f"===== {cfg['name']} =====")
 
         save_experiment_config(cfg, cfg["trainer_cfg"].checkpoint_dir)
-        run_training(
+        result = run_training(
             train_ds, val_ds, test_ds,
             model_cls=cfg['model_cls'],
             trainer_cls=cfg['trainer_cls'],
@@ -310,3 +325,8 @@ if __name__ == '__main__':
             #checkpoint_name=cfg['ckpt'],
             resume_training=cfg['resume_training']
         )
+
+        if result is None:
+            print(f"===== ERROR FOR {cfg['name']} =====")
+
+        print(f"======== END OF TRAINING {cfg['name']} =====")

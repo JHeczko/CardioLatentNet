@@ -225,6 +225,8 @@ class TransformerAecTrainer:
             "model": self.model.state_dict(),
             "optimizer": self.optimizer.state_dict(),
             "step": step,
+            "best_val_loss": self._best_val_loss,
+            "patience_counter": self._patience_counter,
             "history": self.history,
             "history_val": self.history_val
         }
@@ -244,6 +246,9 @@ class TransformerAecTrainer:
 
         self.model.load_state_dict(checkpoint["model"])
         self.optimizer.load_state_dict(checkpoint["optimizer"])
+
+        self._patience_counter = checkpoint["patience_counter"]
+        self._best_val_loss = checkpoint["best_val_loss"]
 
         self.start_step = checkpoint["step"] + 1
         self.history = checkpoint.get("history", [])
