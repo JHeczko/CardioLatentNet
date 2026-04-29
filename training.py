@@ -310,8 +310,8 @@ if __name__ == '__main__':
         },
     ]
 
-    for cfg in configs:
-        print(f"===== {cfg['name']} =====")
+    for i,cfg in enumerate(configs):
+        print(f"===== {cfg['name']} {i}/{len(cfg)} =====")
 
         save_experiment_config(cfg, cfg["trainer_cfg"].checkpoint_dir)
         result = run_training(
