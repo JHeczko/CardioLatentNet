@@ -3,23 +3,27 @@ import os.path
 import os
 import json
 import traceback
+import kagglehub
 from dataclasses import asdict
 from datetime import datetime
 
 import torch.cuda
 from torch.utils.data import DataLoader
+
 from src.utils.trainers import LstmVaeTrainer, TransformerAecTrainer, CnnAecTrainer
 from src.utils.config.trainer import LstmTrainerConfig, TransformerTrainerConfig, CnnTrainerConfig
 from src.utils.config.model import LstmVaeConfig, TransformerAecConfig, CnnAecConfig
 from src.data import Hearbeat_ECG_DataSet
 from src import LstmVae, TransformerAec, CnnAec
 
-def run_training(train_ds, val_ds, test_ds, model_cls, trainer_cls, model_cfg, trainer_cfg, batch_sizes,
-                 checkpoint_name = None, resume_training=False):
+def run_training(train_ds, val_ds, test_ds, model_cls, trainer_cls, model_cfg, trainer_cfg, batch_sizes, resume_training=False):
     try:
-        train_loader = DataLoader(train_ds, shuffle=True, batch_size=batch_sizes['train'], pin_memory=True, num_workers=8, persistent_workers=True)
-        val_loader = DataLoader(val_ds, shuffle=False, batch_size=batch_sizes['val'], pin_memory=True, num_workers=8, persistent_workers=True)
-        test_loader = DataLoader(test_ds, shuffle=False, batch_size=len(test_ds), pin_memory=True, num_workers=8, persistent_workers=True)
+        cpu_cores = os.cpu_count() or 4
+        num_workers = max(2, cpu_cores)
+
+        train_loader = DataLoader(train_ds, shuffle=True, batch_size=batch_sizes['train'], pin_memory=True, num_workers=num_workers, persistent_workers=True, prefetch_factor=2)
+        val_loader = DataLoader(val_ds, shuffle=False, batch_size=batch_sizes['val'], pin_memory=True, num_workers=num_workers, persistent_workers=True, prefetch_factor=2)
+        test_loader = DataLoader(test_ds, shuffle=False, batch_size=batch_sizes['val'], pin_memory=True, num_workers=num_workers, persistent_workers=True, prefetch_factor=2)
 
         model = model_cls(config=model_cfg)
         trainer = trainer_cls(model=model, dataloader=train_loader, val_dataloader=val_loader, config=trainer_cfg)
@@ -76,10 +80,17 @@ def save_experiment_config(cfg, checkpoint_dir):
     print(f"[CONFIG SAVED] -> {path}")
 
 if __name__ == '__main__':
+    print("Downloading dataset...", end=" ")
+    path = kagglehub.dataset_download("khyeh0719/ptb-xl-dataset")
+    print(f"Done! Path is = {os.path.join(path, "ptb-xl-a-large-publicly-available-electrocardiography-dataset-1.0.1")}")
+
+    ds_path = os.path.join(path, "ptb-xl-a-large-publicly-available-electrocardiography-dataset-1.0.1")
+    test_ds_path = "./dataset/ptb_xl_test/"
+
     print("Loading dataset...\n", end=' ')
-    train_ds = Hearbeat_ECG_DataSet(path="./dataset/ptb_xl_test/", mode='train')
-    val_ds = Hearbeat_ECG_DataSet(path="./dataset/ptb_xl_test/", mode='val')
-    test_ds = Hearbeat_ECG_DataSet(path="./dataset/ptb_xl_test/", mode="test")
+    train_ds = Hearbeat_ECG_DataSet(path=ds_path, mode='train')
+    val_ds = Hearbeat_ECG_DataSet(path=ds_path, mode='val')
+    test_ds = Hearbeat_ECG_DataSet(path=ds_path, mode="test")
     print("Done")
 
 
@@ -90,9 +101,8 @@ if __name__ == '__main__':
             "model_cls": CnnAec,
             "trainer_cls": CnnAecTrainer,
             "model_cfg": CnnAecConfig(),
-            "trainer_cfg": CnnTrainerConfig(early_stopper_patience=15),
+            "trainer_cfg": CnnTrainerConfig(early_stopper_patience=15, checkpoint_dir="checkpoints_cnn_baseline"),
             "batch_sizes": {'train': 128, 'val': 512},
-            "ckpt": "cnn_newest.pt",
             "resume_training": False
         },
         {
@@ -110,7 +120,6 @@ if __name__ == '__main__':
                 lr=1e-3,
                 checkpoint_dir="checkpoints_cnn_fast_and_stable"),
             "batch_sizes": {'train': 128, 'val': 512},
-            "ckpt": "cnn_newest.pt",
             "resume_training": False
         },
         {
@@ -127,7 +136,6 @@ if __name__ == '__main__':
                 early_stopper_patience=15,
                 checkpoint_dir="checkpoints_cnn_deep"),
             "batch_sizes": {'train': 128, 'val': 512},
-            "ckpt": "cnn_newest.pt",
             "resume_training": False
         },
         {
@@ -142,9 +150,8 @@ if __name__ == '__main__':
             ),
             "trainer_cfg": CnnTrainerConfig(
                 early_stopper_patience=15,
-                checkpoint_dir="checkpoints_cnn_deep"),
+                checkpoint_dir="checkpoints_cnn_hard_bottleneck"),
             "batch_sizes": {'train': 128, 'val': 512},
-            "ckpt": "cnn_newest.pt",
             "resume_training": False
         },
         # ======= Transformer config =======
@@ -153,9 +160,8 @@ if __name__ == '__main__':
             "model_cls": TransformerAec,
             "trainer_cls": TransformerAecTrainer,
             "model_cfg": TransformerAecConfig(),
-            "trainer_cfg": TransformerTrainerConfig(checkpoint_dir="checkpoints_transformer_basic"),
+            "trainer_cfg": TransformerTrainerConfig(checkpoint_dir="checkpoints_transformer_baseline"),
             "batch_sizes": {'train': 128, 'val': 512},
-            "ckpt": "transformer_newest.pt",
             "resume_training": False
         },
         {
@@ -172,9 +178,8 @@ if __name__ == '__main__':
             "trainer_cfg": TransformerTrainerConfig(
                 lr=2e-4,
                 weight_decay=1e-4,
-                checkpoint_dir="checkpoints_transformer_baseline"),
+                checkpoint_dir="checkpoints_transformer_stable_baseline"),
             "batch_sizes": {'train': 96, 'val': 512},
-            "ckpt": "transformer_newest.pt",
             "resume_training": False
         },
         {
@@ -194,7 +199,6 @@ if __name__ == '__main__':
                 checkpoint_dir="checkpoints_transformer_bigboy"
             ),
             "batch_sizes": {'train': 96, 'val': 512},
-            "ckpt": "transformer_newest.pt",
             "resume_training": False
         },
         {
@@ -213,7 +217,6 @@ if __name__ == '__main__':
                 checkpoint_dir="checkpoints_transformer_no_reg"
             ),
             "batch_sizes": {'train': 64, 'val': 512},
-            "ckpt": "transformer_newest.pt",
             "resume_training": False
         },
         # ======= LSTM VAE config =======
@@ -225,10 +228,10 @@ if __name__ == '__main__':
                 latent_dim=64
             ),
             "trainer_cfg": LstmTrainerConfig(
-                mmd_weight=0.7
+                mmd_weight=0.7,
+                checkpoint_dir="checkpoints_lstm_baseline"
             ),
             "batch_sizes": {'train': 128, 'val': 512},
-            "ckpt": "lstm_newest.pt",
             "resume_training": False
         },
         {
@@ -248,7 +251,6 @@ if __name__ == '__main__':
                 checkpoint_dir="checkpoints_lstm_baseline_pp"
              ),
             "batch_sizes": {'train': 128, 'val': 512},
-            "ckpt": "lstm_newest.pt",
             "resume_training": False
         },
         {
@@ -267,7 +269,6 @@ if __name__ == '__main__':
                 checkpoint_dir="checkpoints_lstm_strong_latent"
             ),
             "batch_sizes": {'train': 128, 'val': 512},
-            "ckpt": "lstm_newest.pt",
             "resume_training": False
         },
         {
@@ -287,7 +288,6 @@ if __name__ == '__main__':
                 checkpoint_dir="checkpoints_lstm_big_boy"
             ),
             "batch_sizes": {'train': 96, 'val': 512},
-            "ckpt": "lstm_newest.pt",
             "resume_training": False
         },
         {
@@ -306,7 +306,6 @@ if __name__ == '__main__':
                 checkpoint_dir="checkpoints_lstm_reg_latent"
             ),
             "batch_sizes": {'train': 128, 'val': 512},
-            "ckpt": "lstm_newest.pt",
             "resume_training": False
         },
     ]
@@ -322,7 +321,6 @@ if __name__ == '__main__':
             model_cfg=cfg['model_cfg'],
             trainer_cfg=cfg['trainer_cfg'],
             batch_sizes=cfg['batch_sizes'],
-            #checkpoint_name=cfg['ckpt'],
             resume_training=cfg['resume_training']
         )
 

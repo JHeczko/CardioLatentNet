@@ -5,7 +5,7 @@ import wfdb
 from typing import Literal
 from sklearn.preprocessing import MultiLabelBinarizer
 from tqdm import tqdm
-
+import os
 
 class Full_ECG_DataSet(torch.utils.data.Dataset):
 
@@ -30,8 +30,8 @@ class Full_ECG_DataSet(torch.utils.data.Dataset):
         self.path = path
 
         # =-=-=-=-=-=-=-=-= load data =-=-=-=-=-=-=-=-=
-        Y: pd.DataFrame = pd.read_csv(path + 'ptbxl_database.csv', index_col='ecg_id', na_values='-1')
-        agg_df = pd.read_csv(path + 'scp_statements.csv', index_col=0)
+        Y: pd.DataFrame = pd.read_csv(os.path.join(path, 'ptbxl_database.csv'), index_col='ecg_id', na_values='-1')
+        agg_df = pd.read_csv(os.path.join(path, 'scp_statements.csv'), index_col=0)
 
         # =-=-=-=-=-=-=-=-= filtering data from NaN =-=-=-=-=-=-=-=-=
         # ======== AGE ========
@@ -90,6 +90,6 @@ class Full_ECG_DataSet(torch.utils.data.Dataset):
         return len(self.X_files)
 
     def __getitem__(self, idx):
-        signal, _ = wfdb.rdsamp(self.path + self.X_files[idx])
+        signal, _ = wfdb.rdsamp(os.path.join(self.path, self.X_files[idx]))
 
         return torch.tensor(signal.copy(), dtype=torch.float32), torch.tensor(self.y[idx], dtype=torch.float32)

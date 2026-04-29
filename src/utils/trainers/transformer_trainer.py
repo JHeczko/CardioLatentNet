@@ -139,8 +139,10 @@ class TransformerAecTrainer:
             dtype=self.amp_dtype,
             enabled=self.use_amp
         ):
-            x_hat = self.model(x)
-            loss = self.recon_loss_fn(x_hat, x)
+            # enabling flash attention for mem and speed effieciency
+            with torch.backends.cuda.sdp_kernel(enable_flash=True, enable_math=True, enable_mem_efficient=True):
+                x_hat = self.model(x)
+                loss = self.recon_loss_fn(x_hat, x)
 
         self.optimizer.zero_grad(set_to_none=True)
 
@@ -186,6 +188,8 @@ class TransformerAecTrainer:
             x_hat = self.model(x)
             losses.append(self.recon_loss_fn(x_hat, x).item())
 
+            del x, x_hat
+
         avg_loss = sum(losses) / len(losses)
         print(f"[EVAL] Recon Loss: {avg_loss:.4f}")
 
@@ -207,6 +211,8 @@ class TransformerAecTrainer:
             x = batch.to(self.device)
             x_hat = self.model(x)
             losses.append(self.recon_loss_fn(x_hat, x).item())
+
+            del x, x_hat
 
         avg_loss = sum(losses) / len(losses)
         print(f"[TEST] Recon Loss: {avg_loss:.4f}")

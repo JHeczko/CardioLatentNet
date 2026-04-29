@@ -1,5 +1,5 @@
 # Dataset origin
-Everything was trained on `PTB-XL` dataset which can be found by the link below. Everything was put into the another folder `./ptb_xl`
+Everything was trained on `PTB-XL` dataset which can be found by the link below. `training.py` contains example workflow for training models, this code was used to train my models on distant server
 
 ## Link
 - [DATASET-DOWNLOAD](https://physionet.org/content/ptb-xl/1.0.3/)

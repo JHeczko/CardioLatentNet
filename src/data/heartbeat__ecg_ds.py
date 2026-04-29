@@ -12,12 +12,13 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 import timeit
+import os
 
 def process_file(args):
     file, label, path, sampling_rate, pre_sample, post_sample = args
 
     out = []
-    series, _ = wfdb.rdsamp(path + file)
+    series, _ = wfdb.rdsamp(os.path.join(path,file))
     II_series = series[:, 1]
 
     cleaned_series = nk.ecg_clean(II_series, sampling_rate=sampling_rate)
@@ -53,8 +54,8 @@ class Hearbeat_ECG_DataSet(torch.utils.data.Dataset):
         self.path = path
 
         # =-=-=-=-=-=-=-=-= load data =-=-=-=-=-=-=-=-=
-        Y: pd.DataFrame = pd.read_csv(path + 'ptbxl_database.csv', index_col='ecg_id')
-        agg_df = pd.read_csv(path + 'scp_statements.csv', index_col=0)
+        Y: pd.DataFrame = pd.read_csv(os.path.join(path, 'ptbxl_database.csv'), index_col='ecg_id')
+        agg_df = pd.read_csv(os.path.join(path,'scp_statements.csv'), index_col=0)
 
         # =-=-=-=-=-=-=-=-= filtering data from NaN =-=-=-=-=-=-=-=-=
         # ======== AGE and SEX ========
@@ -128,7 +129,7 @@ class Hearbeat_ECG_DataSet(torch.utils.data.Dataset):
     def __getitem__(self, idx):
         file, peak, label = self.X_files[idx]
 
-        signal_heartbeat, _ = wfdb.rdsamp(self.path + file, sampfrom=peak-self.pre_sample, sampto=peak+self.post_sample)
+        signal_heartbeat, _ = wfdb.rdsamp(os.path.join(self.path,file), sampfrom=peak-self.pre_sample, sampto=peak+self.post_sample)
 
         return torch.tensor(signal_heartbeat.copy(), dtype=torch.float32), torch.tensor(label, dtype=torch.float32)
 

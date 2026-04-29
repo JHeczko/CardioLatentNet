@@ -109,7 +109,7 @@ if __name__ == "__main__":
 
     models = [
         {
-            "name": "LSTM_VAE",
+            "name": "LSTM_VAE_ver1",
             "cls": LstmVae,
             "config": LstmVaeConfig(),
             "trainer_cfg": LstmTrainerConfig(checkpoint_dir="checkpoints_lstm_ver1"),
@@ -119,17 +119,6 @@ if __name__ == "__main__":
             "hist_val": "lstm_history_val.json",
             "plots_dir": "plots/plots_lstm_ver1",
         },
-        # {
-        #     "name": "Transformer",
-        #     "cls": TransformerAec,
-        #     "config": TransformerAecConfig(),
-        #     "trainer_cfg": TransformerTrainerConfig(),
-        #     "ckpt": "transformer_model.pt",
-        #     "best_ckpt": "transformer_best.pt",
-        #     "hist": "transformer_history.json",
-        #     "hist_val": "transformer_history_val.json",
-        #     "plots_dir": "plots/plots_transformer",
-        # },
         {
             "name": "CNN",
             "cls": CnnAec,

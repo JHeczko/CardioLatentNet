@@ -7,3 +7,4 @@ seaborn
 umap-learn
 wfdb
 tqdm
+kagglehub
