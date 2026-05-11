@@ -62,6 +62,7 @@ class TransformerAecTrainer:
 
         # step (for resume)
         self.start_step = 1
+        self.accumulation_step = config.accumulation_step
 
         # ===== EARLY STOPPER =====
         self._best_val_loss = float("inf")
@@ -129,37 +130,43 @@ class TransformerAecTrainer:
 
         x = self._get_batch()
 
-        # LR update
         lr = self._get_lr(step)
         for param_group in self.optimizer.param_groups:
             param_group["lr"] = lr
 
         with autocast(
-            device_type=self.device.type,
-            dtype=self.amp_dtype,
-            enabled=self.use_amp
+                device_type=self.device.type,
+                dtype=self.amp_dtype,
+                enabled=self.use_amp
         ):
-            # enabling flash attention for mem and speed effieciency
-            with torch.backends.cuda.sdp_kernel(enable_flash=True, enable_math=True, enable_mem_efficient=True):
+            with torch.backends.cuda.sdp_kernel(
+                    enable_flash=True,
+                    enable_math=True,
+                    enable_mem_efficient=True
+            ):
                 x_hat = self.model(x)
-                loss = self.recon_loss_fn(x_hat, x)
-
-        self.optimizer.zero_grad(set_to_none=True)
+                loss = self.recon_loss_fn(x_hat, x) / self.accumulation_step
 
         if self.use_scaler:
             self.scaler.scale(loss).backward()
-            self.scaler.unscale_(self.optimizer)
-            torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.config.grad_clip)
-            self.scaler.step(self.optimizer)
-            self.scaler.update()
+
+            if step % self.accumulation_step == 0:
+                self.scaler.unscale_(self.optimizer)
+                torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.config.grad_clip)
+                self.scaler.step(self.optimizer)
+                self.scaler.update()
+                self.optimizer.zero_grad(set_to_none=True)
         else:
             loss.backward()
-            torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.config.grad_clip)
-            self.optimizer.step()
+
+            if step % self.accumulation_step == 0:
+                torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.config.grad_clip)
+                self.optimizer.step()
+                self.optimizer.zero_grad(set_to_none=True)
 
         metrics = {
             "step": step,
-            "loss": loss.item(),
+            "loss": loss.item() * self.accumulation_step,  # przywróć oryginalną skalę do logów
             "lr": lr
         }
 
@@ -233,6 +240,7 @@ class TransformerAecTrainer:
             "step": step,
             "best_val_loss": self._best_val_loss,
             "patience_counter": self._patience_counter,
+            "accumulation_step": self.accumulation_step,
             "history": self.history,
             "history_val": self.history_val
         }
@@ -255,6 +263,8 @@ class TransformerAecTrainer:
 
         self._patience_counter = checkpoint["patience_counter"]
         self._best_val_loss = checkpoint["best_val_loss"]
+
+        self.accumulation_step = checkpoint["accumulation_step"]
 
         self.start_step = checkpoint["step"] + 1
         self.history = checkpoint.get("history", [])
@@ -281,7 +291,9 @@ class TransformerAecTrainer:
         for step in range(self.start_step, self.config.max_iters + 1):
 
             metrics = self.train_step(step)
-            self.history.append(metrics)
+
+            if step % self.accumulation_step == 0:
+                self.history.append(metrics)
 
             if step % self.config.log_every == 0:
                 print(

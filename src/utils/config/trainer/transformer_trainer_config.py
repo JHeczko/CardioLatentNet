@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Literal
 
 
@@ -8,6 +8,7 @@ class TransformerTrainerConfig:
     max_iters: int = 100_000
     log_every: int = 100
     eval_every: int = 1_000
+    accumulation_step: int = 64
 
     # optimization
     lr: float = 1e-4
@@ -31,3 +32,9 @@ class TransformerTrainerConfig:
     # checkpointing
     checkpoint_every: int = 1_000
     checkpoint_dir: str = "./checkpoints_transformer"
+
+    def __post_init__(self):
+        acc = self.accumulation_step
+        self.log_every = max(acc, (self.log_every // acc) * acc)
+        self.eval_every = max(acc, (self.eval_every // acc) * acc)
+        self.checkpoint_every = max(acc, (self.checkpoint_every // acc) * acc)

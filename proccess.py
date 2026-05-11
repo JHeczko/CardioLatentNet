@@ -222,8 +222,7 @@ def process_model(config, test_loader):
         result = _run_analysis(m, eval_name, plots_dir, test_loader, device)
         results.append(result)
 
-    with open("./results.json", "w") as f:
-        json.dump(results, f, indent=2)
+    return results
 
 if __name__ == "__main__":
     warnings.filterwarnings("ignore")
@@ -488,8 +487,13 @@ if __name__ == "__main__":
         # from remote VM
     ]
 
+    results = []
     for cfg in configs:
         print(f"\n======================================")
         print(f"Przetwarzanie modelu: {cfg['name']}")
         print(f"======================================")
-        process_model(cfg, test_loader)
+        results_model = process_model(cfg, test_loader)
+        results.extend(results_model)
+
+    with open("./results.json", "w") as f:
+        json.dump(results, f, indent=2)
