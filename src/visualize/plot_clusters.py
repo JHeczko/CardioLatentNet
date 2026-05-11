@@ -12,9 +12,13 @@ def visualize_latents(latents, targets, method:Literal['tsne', 'umap', 'pca']="t
     targets_np = targets.detach().cpu().numpy()
 
     if method == "tsne":
-        reducer = TSNE(n_components=2, perplexity=30, random_state=42)
+        if len(latents_np) > 10_000:
+            idx = np.random.choice(len(latents_np), 10_000, replace=False)
+            latents_np = latents_np[idx]
+            targets_np = targets_np[idx]
+        reducer = TSNE(n_components=2, perplexity=50, random_state=42)
     elif method == "umap":
-        reducer = umap.UMAP(n_components=2,n_neighbors=15, min_dist=0.1)
+        reducer = umap.UMAP(n_components=2, n_neighbors=30, min_dist=0.1, random_state=42)
     elif method == "pca":
         reducer = PCA(n_components=2)
 
@@ -44,8 +48,11 @@ def visualize_latents(latents, targets, method:Literal['tsne', 'umap', 'pca']="t
     plt.tight_layout()
 
     if path is not None:
+        print("[INFO] Saving figure to", path)
         plt.savefig(path)
 
-    plt.show()
+    if path is None:
+        plt.show()
+
     plt.close()
 

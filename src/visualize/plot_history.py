@@ -57,7 +57,10 @@ def plot_training_history(train_history, val_history, model_title = "", path=Non
     plt.tight_layout()
 
     if path is not None:
+        print("[INFO] Saving history to", path)
         plt.savefig(path)
 
-    plt.show()
+    if path is None:
+        plt.show()
+
     plt.close()
