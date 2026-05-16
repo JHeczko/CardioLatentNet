@@ -5,3 +5,4 @@ from .lstmconv_encoder_block import LSTMConvEncoderBlock
 from .variational_block import VariationalBlock
 from .conv_decoder_block import ConvDecoderBlock
 from .conv_encoder_block import ConvEncoderBlock
+from .lstmconv_proccess_block import LSTMConvProcessBlock
