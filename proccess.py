@@ -57,7 +57,7 @@ def evaluate_latent_quality(latent_np, n_clusters=18):
 
 def _run_analysis(model, run_name, plots_dir, test_loader, device):
     result = {
-        'name': "run_name"
+        'name': run_name
     }
 
     x_hats, xs, ys = [], [], []

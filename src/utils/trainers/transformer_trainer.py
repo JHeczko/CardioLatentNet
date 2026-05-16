@@ -166,7 +166,7 @@ class TransformerAecTrainer:
 
         metrics = {
             "step": step,
-            "loss": loss.item() * self.accumulation_step,  # przywróć oryginalną skalę do logów
+            "loss": loss.item(),
             "lr": lr
         }
 
