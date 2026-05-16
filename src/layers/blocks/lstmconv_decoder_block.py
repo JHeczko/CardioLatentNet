@@ -50,7 +50,7 @@ class LSTMConvDecoderBlock(nn.Module):
         # conv
         x = self.conv(x)
         x = self.norm_conv(x)
-        self.dropout_conv(x)
+        x = self.dropout_conv(x)
         x = F.gelu(x)
 
         # back

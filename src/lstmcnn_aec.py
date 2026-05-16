@@ -4,7 +4,7 @@ from torch import nn
 from torch.nn import functional as F
 
 from .utils.config.model import LstmVaeConfig
-from .layers.blocks import LSTMConvDecoderBlock, LSTMConvEncoderBlock, VariationalBlock
+from .layers.blocks import LSTMConvDecoderBlock, LSTMConvEncoderBlock, VariationalBlock, LSTMConvProcessBlock
 
 
 class LstmVae(nn.Module):
@@ -20,6 +20,7 @@ class LstmVae(nn.Module):
 
 
         # ===== ENCODER =====
+        self.enc_per_block = config.enc_dec_ratio[0]
         current_channel_size = starting_channel_size
         current_seq_len = seq_len
 
@@ -37,13 +38,20 @@ class LstmVae(nn.Module):
                 )
                 first = False
             else:
-                self.encoder_blocks.append(
+                combined_block = nn.Sequential()
+
+                for _ in range(self.enc_per_block - 1):
+                    combined_block.append(LSTMConvProcessBlock(dim=current_channel_size, dropout=dropout))
+
+                combined_block.append(
                     LSTMConvEncoderBlock(
                         input_dim=current_channel_size,
                         output_dim=current_channel_size * 2,
                         dropout=dropout
                     )
                 )
+
+                self.encoder_blocks.append(combined_block)
                 current_channel_size *= 2
 
             current_seq_len = math.ceil(current_seq_len / 2)
@@ -66,16 +74,25 @@ class LstmVae(nn.Module):
         )
 
         # ===== DECODER =====
+        self.dec_per_block = config.enc_dec_ratio[1]
         self.decoder_blocks = nn.ModuleList()
 
         for i in range(blocks):
-            self.decoder_blocks.append(
+            block_combined = nn.Sequential()
+
+            for _ in range(self.dec_per_block - 1):
+                block_combined.append(LSTMConvProcessBlock(dim=current_channel_size, dropout=dropout))
+
+            block_combined.append(
                 LSTMConvDecoderBlock(
                     input_dim=current_channel_size,
                     output_dim=current_channel_size // 2,
                     dropout=dropout
                 )
             )
+
+            self.decoder_blocks.append(block_combined)
+
             current_channel_size //= 2
 
         self.out_projection = nn.Linear(current_channel_size, ecg_channels)

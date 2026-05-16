@@ -16,11 +16,14 @@ class CnnAec(nn.Module):
 
         # ===== ENCODER =====
         self.encoder_blocks = nn.ModuleList()
+        self.enc_per_block = config.enc_dec_ratio[0]
         in_channels = config.input_dim
 
         for i in range(config.blocks):
             out_channels = config.hidden_channels * (2 ** i)
-            self.encoder_blocks.append(EncoderBlock(in_channels, out_channels, config.dropout))
+            for _ in range(self.enc_per_bloc - 1):
+                self.encoder_blocks.append(EncoderBlock(in_channels, in_channels, config.dropout, stride=1))
+            self.encoder_blocks.append(EncoderBlock(in_channels, out_channels, config.dropout, stride=2))
             in_channels = out_channels
 
         self.final_channels = in_channels
@@ -34,11 +37,14 @@ class CnnAec(nn.Module):
 
         # ===== DECODER =====
         self.decoder_blocks = nn.ModuleList()
+        self.dec_per_block = config.enc_dec_ratio[1]
         in_channels = self.final_channels
 
         for i in reversed(range(config.blocks)):
             out_channels = config.hidden_channels * (2 ** i) if i > 0 else config.input_dim
-            self.decoder_blocks.append(DecoderBlock(in_channels, out_channels, config.dropout))
+            for _ in range(self.dec_per_block - 1):
+                self.decoder_blocks.append(DecoderBlock(in_channels, out_channels, config.dropout, stride=1))
+            self.decoder_blocks.append(DecoderBlock(in_channels, out_channels, config.dropout, stride=2))
             in_channels = out_channels
 
         self.out_projection = nn.Linear(config.input_dim, config.input_dim)
