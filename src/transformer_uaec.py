@@ -138,7 +138,7 @@ class TransformerAec(nn.Module):
         downsamplers_iter = iter(self.downsamplers)
         for i,encoder_block in enumerate(self.encoders):
             if self.grad_checkpointing and self.training:
-                enc_out = torch.utils.checkpoint.checkpoint(encoder_block, enc_out, use_reentrant=False, debug=True)
+                enc_out = torch.utils.checkpoint.checkpoint(encoder_block, enc_out, use_reentrant=False, debug=True, preserve_rng_state=True)
             else:
                 enc_out = encoder_block(enc_out)
 
