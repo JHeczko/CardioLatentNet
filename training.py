@@ -98,6 +98,12 @@ if __name__ == '__main__':
     train_full_ds = Full_ECG_DataSet(path=ds_path, mode='train')
     val_full_ds = Full_ECG_DataSet(path=ds_path, mode='val')
     test_full_ds = Full_ECG_DataSet(path=ds_path, mode='test')
+
+    ds_map = {
+        "heartbeat": (train_heartbeat_ds, val_heartbeat_ds, test_heartbeat_ds),
+        "full_ecg": (train_full_ds, val_full_ds, test_full_ds),
+    }
+
     print("Done")
 
     configs = []
@@ -331,7 +337,7 @@ if __name__ == '__main__':
         },
     ]
 
-    configs_per_heartbaet_plus = [
+    configs_per_heartbeat_plus = [
         # ======== CNN ========
         {
             "name": "CNN-HB-deeper",
@@ -340,7 +346,7 @@ if __name__ == '__main__':
             "model_cfg": CnnAecConfig(
                 hidden_channels=128,
                 latent_dim=64,
-                blocks=4,  # głębiej niż baseline (było 3)
+                blocks=4,
                 dropout=0.15
             ),
             "trainer_cfg": CnnTrainerConfig(
@@ -390,7 +396,6 @@ if __name__ == '__main__':
         },
 
         # ======== LSTM VAE ========
-        # big-model był najlepszy (silhouette=0.34) — idziemy w tym kierunku
         {
             "name": "LSTM-VAE-HB-big-boy-deeper",
             "model_cls": LstmVae,
@@ -425,7 +430,7 @@ if __name__ == '__main__':
             "trainer_cfg": LstmTrainerConfig(
                 lr=1.5e-4,
                 warmup_iters=5000,
-                mmd_weight=0.3,  # trochę więcej regularyzacji MMD
+                mmd_weight=0.3,
                 early_stopper_patience=25,
                 checkpoint_dir=os.path.join(checkpoints_path, "hb_lstm_big_high_reg")
             ),
@@ -439,7 +444,7 @@ if __name__ == '__main__':
             "trainer_cls": LstmVaeTrainer,
             "model_cfg": LstmVaeConfig(
                 blocks=4,
-                latent_dim=192,  # szerszy latent
+                latent_dim=192,
                 starting_channel_size=96,
                 dropout=0.25
             ),
@@ -459,7 +464,8 @@ if __name__ == '__main__':
             "model_cls": LstmVae,
             "trainer_cls": LstmVaeTrainer,
             "model_cfg": LstmVaeConfig(
-                blocks=6,
+                blocks=5,
+                enc_dec_ratio=(2, 2),
                 latent_dim=192,
                 dropout=0.3
             ),
@@ -475,7 +481,7 @@ if __name__ == '__main__':
             "resume_training": False,
         },
         {
-            "name": "LSTM-VAE-HB-deeper-no-reg",
+            "name": "LSTM-VAE-HB-deeper-high-reg",
             "model_cls": LstmVae,
             "trainer_cls": LstmVaeTrainer,
             "model_cfg": LstmVaeConfig(
@@ -488,7 +494,7 @@ if __name__ == '__main__':
                 warmup_iters=5000,
                 mmd_weight=0.8,
                 early_stopper_patience=25,
-                checkpoint_dir=os.path.join(checkpoints_path, "hb_lstm_ultra_deeper_wider_latent")
+                checkpoint_dir=os.path.join(checkpoints_path, "hb_lstm_deeper_high_reg")
             ),
             "batch_sizes": {"train": 96, "val": 512},
             "type": "heartbeat",
@@ -501,7 +507,7 @@ if __name__ == '__main__':
             "model_cls": TransformerAec,
             "trainer_cls": TransformerAecTrainer,
             "model_cfg": TransformerAecConfig(
-                blocks=4,  # but ratio is doubled
+                blocks=4,
                 enc_dec_ratio=(2, 2),
                 hidden_dim=256,
                 num_att_heads=8,
@@ -511,7 +517,7 @@ if __name__ == '__main__':
             "trainer_cfg": TransformerTrainerConfig(
                 lr=2e-4,
                 early_stopper_patience=25,
-                accumulation_step=2, # 8*16 = 128 batch_size
+                accumulation_step=2,
                 checkpoint_dir=os.path.join(checkpoints_path, "hb_transformer_big_deeper")
             ),
             "batch_sizes": {"train": 64, "val": 512},
@@ -523,17 +529,17 @@ if __name__ == '__main__':
             "model_cls": TransformerAec,
             "trainer_cls": TransformerAecTrainer,
             "model_cfg": TransformerAecConfig(
-                blocks=4, # but ratio is doubled
+                blocks=4,
                 enc_dec_ratio=(2, 2),
                 hidden_dim=256,
                 num_att_heads=8,
-                latent_dim=196,
+                latent_dim=192,
                 dropout=0.25,
             ),
             "trainer_cfg": TransformerTrainerConfig(
                 lr=2e-4,
                 early_stopper_patience=25,
-                accumulation_step=2,  # 8*16 = 128 batch_size
+                accumulation_step=2,
                 checkpoint_dir=os.path.join(checkpoints_path, "hb_transformer_big_deeper_wider_latent")
             ),
             "batch_sizes": {"train": 64, "val": 512},
@@ -563,23 +569,23 @@ if __name__ == '__main__':
             "resume_training": False,
         },
         {
-            "name": "TRANSFORMER-HB-big-wide",
+            "name": "TRANSFORMER-HB-big-wide-more-att",
             "model_cls": TransformerAec,
             "trainer_cls": TransformerAecTrainer,
             "model_cfg": TransformerAecConfig(
                 blocks=6,
                 hidden_dim=384,
-                num_att_heads=8,
+                num_att_heads=12,
                 latent_dim=128,
                 dropout=0.2,
             ),
             "trainer_cfg": TransformerTrainerConfig(
                 lr=2e-4,
                 early_stopper_patience=25,
-                accumulation_step=3,
-                checkpoint_dir=os.path.join(checkpoints_path, "hb_transformer_big_wide")
+                accumulation_step=5,
+                checkpoint_dir=os.path.join(checkpoints_path, "hb_transformer_big_wide_more_att")
             ),
-            "batch_sizes": {"train": 32, "val": 512},
+            "batch_sizes": {"train": 16, "val": 512},
             "type": "heartbeat",
             "resume_training": False,
         },
@@ -591,7 +597,7 @@ if __name__ == '__main__':
                 blocks=6,
                 hidden_dim=384,
                 num_att_heads=8,
-                latent_dim=196,
+                latent_dim=192,  # fix: było 196
                 dropout=0.2,
             ),
             "trainer_cfg": TransformerTrainerConfig(
@@ -608,7 +614,6 @@ if __name__ == '__main__':
     configs_full_ecg = [
 
         # ======== CNN ========
-        # przy seq_len=1000 potrzebujemy więcej bloków żeby dobrze skompresować
         {
             "name": "FULL-CNN-deep",
             "model_cls": CnnAec,
@@ -619,6 +624,7 @@ if __name__ == '__main__':
                 hidden_channels=128,
                 latent_dim=128,
                 blocks=5,
+                enc_dec_ratio=(2, 2),
                 dropout=0.2
             ),
             "trainer_cfg": CnnTrainerConfig(
@@ -640,6 +646,7 @@ if __name__ == '__main__':
                 hidden_channels=192,
                 latent_dim=128,
                 blocks=6,
+                enc_dec_ratio=(2, 2),
                 dropout=0.2
             ),
             "trainer_cfg": CnnTrainerConfig(
@@ -653,7 +660,6 @@ if __name__ == '__main__':
         },
 
         # ======== LSTM VAE ========
-        # LSTM na 1000 kroków jest wolny ale działa — głębokość pomaga
         {
             "name": "FULL-LSTM-deep",
             "model_cls": LstmVae,
@@ -664,7 +670,7 @@ if __name__ == '__main__':
                 blocks=5,
             ),
             "trainer_cfg": LstmTrainerConfig(
-                lr=1e-5,
+                lr=1e-4,
                 warmup_iters=5000,
                 mmd_weight=0.2,
                 early_stopper_patience=20,
@@ -689,6 +695,7 @@ if __name__ == '__main__':
             "trainer_cfg": LstmTrainerConfig(
                 lr=8e-5,
                 warmup_iters=8000,
+                max_iters=150_000,
                 mmd_weight=0.2,
                 early_stopper_patience=20,
                 checkpoint_dir=os.path.join(checkpoints_path, "full_lstm_big")
@@ -697,11 +704,33 @@ if __name__ == '__main__':
             "type": "full_ecg",
             "resume_training": False,
         },
+        {
+            "name": "FULL-LSTM-big-ratio",
+            "model_cls": LstmVae,
+            "trainer_cls": LstmVaeTrainer,
+            "model_cfg": LstmVaeConfig(
+                seq_len=1000,
+                ecg_channels=12,
+                blocks=5,
+                enc_dec_ratio=(2, 2),
+                latent_dim=192,
+                starting_channel_size=96,
+                dropout=0.3
+            ),
+            "trainer_cfg": LstmTrainerConfig(
+                lr=8e-5,
+                warmup_iters=8000,
+                max_iters=150_000,
+                mmd_weight=0.2,
+                early_stopper_patience=20,
+                checkpoint_dir=os.path.join(checkpoints_path, "full_lstm_big_ratio")
+            ),
+            "batch_sizes": {"train": 48, "val": 256},
+            "type": "full_ecg",
+            "resume_training": False,
+        },
 
         # ======== TRANSFORMER ========
-        # UWAGA: seq_len=1000 z pełną atencją = 1000x1000 matrix
-        # trzeba albo gradient_checkpointing=True albo mały batch
-        # enc_dec_ratio=(2,2) żeby było więcej downsamplingu zanim attention
         {
             "name": "FULL-TRANSFORMER-baseline",
             "model_cls": TransformerAec,
@@ -710,21 +739,20 @@ if __name__ == '__main__':
                 seq_len=1000,
                 input_dim=12,
                 blocks=4,
-                enc_dec_ratio=(2, 2),  # 2 enkodery per blok = więcej downsamplingu
+                enc_dec_ratio=(2, 2),
                 hidden_dim=256,
                 num_att_heads=8,
                 latent_dim=128,
                 dropout=0.2,
-                gradient_checkpointing=True  # potrzebne przy seq=1000
             ),
             "trainer_cfg": TransformerTrainerConfig(
                 lr=1e-4,
                 weight_decay=1e-4,
-                accumulation_step=4,  # accumulation bo seq=1000 jest ciężka
+                accumulation_step=6,
                 early_stopper_patience=20,
                 checkpoint_dir=os.path.join(checkpoints_path, "full_transformer_baseline")
             ),
-            "batch_sizes": {"train": 32, "val": 128},
+            "batch_sizes": {"train": 16, "val": 128},
             "type": "full_ecg",
             "resume_training": False,
         },
@@ -741,41 +769,85 @@ if __name__ == '__main__':
                 num_att_heads=8,
                 latent_dim=128,
                 dropout=0.2,
-                gradient_checkpointing=True
             ),
             "trainer_cfg": TransformerTrainerConfig(
                 lr=8e-5,
                 weight_decay=1e-4,
                 warmup_iters=6000,
-                accumulation_step=4,
+                accumulation_step=8,
                 early_stopper_patience=20,
                 checkpoint_dir=os.path.join(checkpoints_path, "full_transformer_deep")
             ),
-            "batch_sizes": {"train": 32, "val": 128},
+            "batch_sizes": {"train": 16, "val": 128},
+            "type": "full_ecg",
+            "resume_training": False,
+        },
+        {
+            "name": "FULL-TRANSFORMER-big-deep",
+            "model_cls": TransformerAec,
+            "trainer_cls": TransformerAecTrainer,
+            "model_cfg": TransformerAecConfig(
+                seq_len=1000,
+                input_dim=12,
+                blocks=6,
+                enc_dec_ratio=(3, 3),
+                hidden_dim=512,
+                num_att_heads=8,
+                latent_dim=256,
+                dropout=0.25,
+            ),
+            "trainer_cfg": TransformerTrainerConfig(
+                lr=8e-5,
+                weight_decay=1e-4,
+                warmup_iters=8000,
+                max_iters=200_000,
+                accumulation_step=32,
+                early_stopper_patience=20,
+                checkpoint_dir=os.path.join(checkpoints_path, "full_transformer_big_deep")
+            ),
+            "batch_sizes": {"train": 4, "val": 128},
+            "type": "full_ecg",
+            "resume_training": False,
+        },
+        {
+            "name": "FULL-TRANSFORMER-more-att",
+            "model_cls": TransformerAec,
+            "trainer_cls": TransformerAecTrainer,
+            "model_cfg": TransformerAecConfig(
+                seq_len=1000,
+                input_dim=12,
+                blocks=5,
+                enc_dec_ratio=(2, 2),
+                hidden_dim=384,
+                num_att_heads=12,
+                latent_dim=192,
+                dropout=0.2,
+            ),
+            "trainer_cfg": TransformerTrainerConfig(
+                lr=8e-5,
+                weight_decay=1e-4,
+                warmup_iters=6000,
+                accumulation_step=16,
+                early_stopper_patience=20,
+                checkpoint_dir=os.path.join(checkpoints_path, "full_transformer_more_att")
+            ),
+            "batch_sizes": {"train": 8, "val": 128},
             "type": "full_ecg",
             "resume_training": False,
         },
     ]
 
-    configs.extend(configs_per_heartbeat)
+    configs.extend(configs_per_heartbeat_plus)
+    configs.extend(configs_full_ecg)
 
     for i,cfg in enumerate(configs):
-        train_ds = None
-        val_ds = None
-        test_ds = None
 
-        if cfg['model_cls'] == 'heartbeat':
-            train_ds = train_heartbeat_ds
-            val_ds = val_heartbeat_ds
-            test_ds = test_heartbeat_ds
-        elif cfg['model_cls'] == 'full':
-            train_ds = train_full_ds
-            val_ds = val_full_ds
-            test_ds = test_full_ds
-        else:
-            raise TypeError("Unknown ds type")
+        # dataSet selection
+        if cfg['type'] not in ds_map:
+            raise TypeError(f"Unknown ds type: {cfg['type']}")
+        train_ds, val_ds, test_ds = ds_map[cfg['type']]
 
-        print(f"===== {cfg['name']} {i+1}/{len(cfg)} =====")
+        print(f"===== {cfg['name']} {i+1}/{len(configs)} =====")
 
         save_experiment_config(cfg, cfg["trainer_cfg"].checkpoint_dir)
         result = run_training(
