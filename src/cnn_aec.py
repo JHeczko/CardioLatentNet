@@ -21,7 +21,7 @@ class CnnAec(nn.Module):
 
         for i in range(config.blocks):
             out_channels = config.hidden_channels * (2 ** i)
-            for _ in range(self.enc_per_bloc - 1):
+            for _ in range(self.enc_per_block - 1):
                 self.encoder_blocks.append(EncoderBlock(in_channels, in_channels, config.dropout, stride=1))
             self.encoder_blocks.append(EncoderBlock(in_channels, out_channels, config.dropout, stride=2))
             in_channels = out_channels
