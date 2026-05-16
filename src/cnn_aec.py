@@ -43,7 +43,7 @@ class CnnAec(nn.Module):
         for i in reversed(range(config.blocks)):
             out_channels = config.hidden_channels * (2 ** i) if i > 0 else config.input_dim
             for _ in range(self.dec_per_block - 1):
-                self.decoder_blocks.append(DecoderBlock(in_channels, out_channels, config.dropout, stride=1))
+                self.decoder_blocks.append(DecoderBlock(in_channels, in_channels, config.dropout, stride=1))
             self.decoder_blocks.append(DecoderBlock(in_channels, out_channels, config.dropout, stride=2))
             in_channels = out_channels
 
