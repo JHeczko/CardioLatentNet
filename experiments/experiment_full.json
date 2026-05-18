@@ -17,7 +17,7 @@
       "early_stopper_patience": 15,
       "checkpoint_dir": "full_cnn_deep"
     },
-    "batch_sizes": {"train": 96, "val": 512},
+    "batch_sizes": {"train": 96, "val": 256},
     "type": "full_ecg",
     "resume_training": false
   },
@@ -39,7 +39,7 @@
       "early_stopper_patience": 15,
       "checkpoint_dir": "full_cnn_deeper"
     },
-    "batch_sizes": {"train": 96, "val": 512},
+    "batch_sizes": {"train": 96, "val": 256},
     "type": "full_ecg",
     "resume_training": false
   },

@@ -7,6 +7,7 @@
       "hidden_channels": 128,
       "latent_dim": 64,
       "blocks": 4,
+      "enc_dec_ratio": [2, 2],
       "dropout": 0.15
     },
     "trainer_cfg": {
@@ -43,6 +44,7 @@
       "hidden_channels": 192,
       "latent_dim": 128,
       "blocks": 5,
+      "enc_dec_ratio": [2, 2],
       "dropout": 0.2
     },
     "trainer_cfg": {
