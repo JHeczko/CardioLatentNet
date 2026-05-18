@@ -19,6 +19,29 @@ from src.utils.config.trainer import LstmTrainerConfig, TransformerTrainerConfig
 from src.utils.config.model import LstmVaeConfig, TransformerAecConfig, CnnAecConfig
 from src import TransformerAec, LstmVae, CnnAec
 
+MODEL_REGISTRY = {
+    "CnnAec": CnnAec,
+    "LstmVae": LstmVae,
+    "TransformerAec": TransformerAec,
+}
+
+TRAINER_REGISTRY = {
+    "CnnAecTrainer": CnnAecTrainer,
+    "LstmVaeTrainer": LstmVaeTrainer,
+    "TransformerAecTrainer": TransformerAecTrainer,
+}
+
+MODEL_CFG_REGISTRY = {
+    "CnnAec": CnnAecConfig,
+    "LstmVae": LstmVaeConfig,
+    "TransformerAec": TransformerAecConfig,
+}
+
+TRAINER_CFG_REGISTRY = {
+    "CnnAecTrainer": CnnTrainerConfig,
+    "LstmVaeTrainer": LstmTrainerConfig,
+    "TransformerAecTrainer": TransformerTrainerConfig,
+}
 
 def get_model_prefix(model_cls):
     """
@@ -35,6 +58,32 @@ def get_model_prefix(model_cls):
     else:
         raise ValueError(f"[ERROR] Nieznana klasa modelu: {cls_name}, nie można wywnioskować prefixu.")
 
+def load_configs(path: str, checkpoints_base: str):
+    with open(path, "r") as f:
+        raw = json.load(f)
+
+    configs = []
+    for item in raw:
+        model_cls_name = item["model_cls"]
+        trainer_cls_name = item["trainer_cls"]
+
+        # podmień checkpoint_dir na absolutny
+        item["trainer_cfg"]["checkpoint_dir"] = os.path.join(
+            checkpoints_base, item["trainer_cfg"]["checkpoint_dir"]
+        )
+
+        configs.append({
+            "name": item["name"],
+            "model_cls": MODEL_REGISTRY[model_cls_name],
+            "trainer_cls": TRAINER_REGISTRY[trainer_cls_name],
+            "model_cfg": MODEL_CFG_REGISTRY[model_cls_name](**item["model_cfg"]),
+            "trainer_cfg": TRAINER_CFG_REGISTRY[trainer_cls_name](**item["trainer_cfg"]),
+            "batch_sizes": item["batch_sizes"],
+            "type": item["type"],
+            "resume_training": item.get("resume_training", False),
+        })
+
+    return configs
 
 def evaluate_latent_quality(latent_np, n_clusters=18):
     """Ocenia jakość przestrzeni latentnej niezależnie od rekonstrukcji."""
@@ -123,7 +172,7 @@ def _run_analysis(model, run_name, plots_dir, test_loader, device):
 
     if latents is not None:
         latent = torch.cat(latents, dim=0)
-
+        torch.save(latent.detach().cpu(), os.path.join(plots_dir, f"{run_name}_latents.pt"))
         latent_metrics = evaluate_latent_quality(latent.numpy())
 
         for method in ('umap', 'tsne', 'pca'):
@@ -164,7 +213,8 @@ def _run_analysis(model, run_name, plots_dir, test_loader, device):
 
 def process_model(config, test_loader):
     run_name = config["name"]
-    plots_dir = os.path.join("plots", run_name)
+    type = config["type"]
+    plots_dir = os.path.join("plots", type, run_name)
     os.makedirs(plots_dir, exist_ok=True)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -174,7 +224,6 @@ def process_model(config, test_loader):
     model_cfg = config["model_cfg"]
     trainer_cfg = config["trainer_cfg"]
 
-    # Wyciągamy potrzebne ścieżki
     ckpt_dir = trainer_cfg.checkpoint_dir
     prefix = get_model_prefix(model_cls)  # np. 'lstm', 'cnn'
 
@@ -241,259 +290,33 @@ if __name__ == "__main__":
     print("Done")
 
     checkpoints_path = "./checkpoints"
+    checkpoints_full_path = os.path.join(checkpoints_path, "./checkpoints_full")
+    checkpoints_heartbeat_path = os.path.join(checkpoints_path, "./checkpoints_heartbeat")
 
-    # Tutaj dokładnie Twoja lista ze słownikami treningowymi (configs)
-    configs = [
-        # {
-        #     "name": "LSTM_VAE_ver1",
-        #     "model_cls": LstmVae,
-        #     "trainer_cls": LstmVaeTrainer,
-        #     "model_cfg": LstmVaeConfig(),
-        #     "trainer_cfg": LstmTrainerConfig(
-        #         checkpoint_dir=os.path.join(checkpoints_path,"checkpoints_lstm_ver1")
-        #     ),
-        #     "batch_sizes": {'train': 128, 'val': 512},
-        #     "resume_training": False
-        # },
-        # {
-        #     "name": "CNN_AEC_ver1",
-        #     "model_cls": CnnAec,
-        #     "trainer_cls": CnnAecTrainer,
-        #     "model_cfg": CnnAecConfig(),
-        #     "trainer_cfg": CnnTrainerConfig(
-        #         checkpoint_dir=os.path.join(checkpoints_path, "checkpoints/checkpoints_cnn_ver1")
-        #     ),
-        #     "batch_sizes": {'train': 128, 'val': 512},
-        # },
+    configs = []
 
-        # remote machine training
-        # ======== CNN CONFS ========
-        {
-            "name": "CNN-baseline",
-            "model_cls": CnnAec,
-            "trainer_cls": CnnAecTrainer,
-            "model_cfg": CnnAecConfig(),
-            "trainer_cfg": CnnTrainerConfig(
-                early_stopper_patience=15,
-                checkpoint_dir=os.path.join(checkpoints_path,"checkpoints_cnn_baseline")
-            ),
-            "batch_sizes": {'train': 128, 'val': 512},
-            "resume_training": False
-        },
-        {
-            "name": "CNN-fast&stable",
-            "model_cls": CnnAec,
-            "trainer_cls": CnnAecTrainer,
-            "model_cfg": CnnAecConfig(
-                hidden_channels=128,
-                latent_dim=64,
-                blocks=3,
-                dropout=0.15
-            ),
-            "trainer_cfg": CnnTrainerConfig(
-                early_stopper_patience=15,
-                lr=1e-3,
-                checkpoint_dir=os.path.join(checkpoints_path,"checkpoints_cnn_fast_and_stable")),
-            "batch_sizes": {'train': 128, 'val': 512},
-            "resume_training": False
-        },
-        {
-            "name": "CNN-deep",
-            "model_cls": CnnAec,
-            "trainer_cls": CnnAecTrainer,
-            "model_cfg": CnnAecConfig(
-                hidden_channels=128,
-                latent_dim=64,
-                blocks=5,
-                dropout=0.2
-            ),
-            "trainer_cfg": CnnTrainerConfig(
-                early_stopper_patience=15,
-                checkpoint_dir=os.path.join(checkpoints_path,"checkpoints_cnn_deep")),
-            "batch_sizes": {'train': 128, 'val': 512},
-            "resume_training": False
-        },
-        {
-            "name": "CNN-hard-bottleneck",
-            "model_cls": CnnAec,
-            "trainer_cls": CnnAecTrainer,
-            "model_cfg": CnnAecConfig(
-                hidden_channels=128,
-                latent_dim=16,
-                blocks=3,
-                dropout=0.2
-            ),
-            "trainer_cfg": CnnTrainerConfig(
-                early_stopper_patience=15,
-                checkpoint_dir=os.path.join(checkpoints_path,"checkpoints_cnn_hard_bottleneck")),
-            "batch_sizes": {'train': 128, 'val': 512},
-            "resume_training": False
-        },
-            # ======= Transformer config =======
-        {
-            "name": "TRANSFORMER-baseline",
-            "model_cls": TransformerAec,
-            "trainer_cls": TransformerAecTrainer,
-            "model_cfg": TransformerAecConfig(),
-            "trainer_cfg": TransformerTrainerConfig(checkpoint_dir=os.path.join(checkpoints_path,"checkpoints_transformer_baseline")),
-            "batch_sizes": {'train': 128, 'val': 512},
-            "resume_training": False
-        },
-        {
-            "name": "TRANSFORMER-stable-baseline",
-            "model_cls": TransformerAec,
-            "trainer_cls": TransformerAecTrainer,
-            "model_cfg": TransformerAecConfig(
-                blocks=4,
-                hidden_dim=192,
-                num_att_heads=6,
-                latent_dim=64,
-                dropout=0.15
-            ),
-            "trainer_cfg": TransformerTrainerConfig(
-                lr=2e-4,
-                weight_decay=1e-4,
-                checkpoint_dir=os.path.join(checkpoints_path,"checkpoints_transformer_stable_baseline")),
-            "batch_sizes": {'train': 96, 'val': 512},
-            "resume_training": False
-        },
-        {
-            "name": "TRANSFORMER-big-boy",
-            "model_cls": TransformerAec,
-            "trainer_cls": TransformerAecTrainer,
-            "model_cfg": TransformerAecConfig(
-                blocks=6,
-                hidden_dim=256,
-                num_att_heads=8,
-                latent_dim=128,
-                dropout=0.2,
-            ),
-            "trainer_cfg": TransformerTrainerConfig(
-                lr=2e-4,
-                weight_decay=1e-4,
-                checkpoint_dir=os.path.join(checkpoints_path,"checkpoints_transformer_bigboy")
-            ),
-            "batch_sizes": {'train': 96, 'val': 512},
-            "resume_training": False
-        },
-        {
-            "name": "TRANSFORMER-no-reg",
-            "model_cls": TransformerAec,
-            "trainer_cls": TransformerAecTrainer,
-            "model_cfg": TransformerAecConfig(
-                blocks=4,
-                hidden_dim=256,
-                latent_dim=64,
-                dropout=0.05
-            ),
-            "trainer_cfg": TransformerTrainerConfig(
-                lr=1e-4,
-                weight_decay=1e-5,
-                checkpoint_dir=os.path.join(checkpoints_path,"checkpoints_transformer_no_reg")
-            ),
-            "batch_sizes": {'train': 64, 'val': 512},
-            "resume_training": False
-        },
-            # ======= LSTM VAE config =======
-        {
-            "name": "LSTM-VAE-baseline",
-            "model_cls": LstmVae,
-            "trainer_cls": LstmVaeTrainer,
-            "model_cfg": LstmVaeConfig(
-                latent_dim=64
-            ),
-            "trainer_cfg": LstmTrainerConfig(
-                mmd_weight=0.7,
-                checkpoint_dir=os.path.join(checkpoints_path,"checkpoints_lstm_baseline")
-            ),
-            "batch_sizes": {'train': 128, 'val': 512},
-            "resume_training": False
-        },
-        {
-            "name": "LSTM-VAE-baseline-pp",
-            "model_cls": LstmVae,
-            "trainer_cls": LstmVaeTrainer,
-            "model_cfg": LstmVaeConfig(
-                blocks=3,
-                latent_dim=96,
-                starting_channel_size=64,
-                dropout=0.2
-            ),
-            "trainer_cfg": LstmTrainerConfig(
-                lr=2e-4,
-                warmup_iters=4000,
-                mmd_weight=0.1,
-                checkpoint_dir=os.path.join(checkpoints_path,"checkpoints_lstm_baseline_pp")
-            ),
-            "batch_sizes": {'train': 128, 'val': 512},
-            "resume_training": False
-        },
-        {
-            "name": "LSTM-VAE-strong-latent",
-            "model_cls": LstmVae,
-            "trainer_cls": LstmVaeTrainer,
-            "model_cfg": LstmVaeConfig(
-                blocks=3,
-                latent_dim=64,
-                starting_channel_size=64,
-                dropout=0.2
-            ),
-            "trainer_cfg": LstmTrainerConfig(
-                lr=2e-4,
-                mmd_weight=0.5,
-                checkpoint_dir=os.path.join(checkpoints_path,"checkpoints_lstm_strong_latent")
-            ),
-            "batch_sizes": {'train': 128, 'val': 512},
-            "resume_training": False
-        },
-        {
-            "name": "LSTM-VAE-big-model",
-            "model_cls": LstmVae,
-            "trainer_cls": LstmVaeTrainer,
-            "model_cfg": LstmVaeConfig(
-                blocks=4,
-                latent_dim=128,
-                starting_channel_size=64,
-                dropout=0.25
-            ),
-            "trainer_cfg": LstmTrainerConfig(
-                lr=1.5e-4,
-                warmup_iters=5000,
-                mmd_weight=0.2,
-                checkpoint_dir=os.path.join(checkpoints_path,"checkpoints_lstm_big_boy")
-            ),
-            "batch_sizes": {'train': 96, 'val': 512},
-            "resume_training": False
-        },
-        {
-            "name": "LSTM-VAE-regularized-latent",
-            "model_cls": LstmVae,
-            "trainer_cls": LstmVaeTrainer,
-            "model_cfg": LstmVaeConfig(
-                blocks=3,
-                latent_dim=32,
-                starting_channel_size=64,
-                dropout=0.3
-            ),
-            "trainer_cfg": LstmTrainerConfig(
-                lr=2e-4,
-                mmd_weight=1.0,
-                checkpoint_dir=os.path.join(checkpoints_path,"checkpoints_lstm_reg_latent")
-            ),
-            "batch_sizes": {'train': 128, 'val': 512},
-            "resume_training": False
-        }
+    configs += load_configs("./experiments/experiment_heartbeat.json", checkpoints_heartbeat_path)
+    configs += load_configs("./experiments/experiment_heartbeat2.json", checkpoints_heartbeat_path)
+    configs += load_configs("./experiments/experiment_full.json", checkpoints_full_path)
 
-        # from remote VM
-    ]
-
-    results = []
+    results_hb = []
+    results_full = []
     for cfg in configs:
         print(f"\n======================================")
         print(f"Przetwarzanie modelu: {cfg['name']}")
         print(f"======================================")
-        results_model = process_model(cfg, test_loader)
-        results.extend(results_model)
+        try:
+            results_model = process_model(cfg, test_loader)
+            if cfg['type'] == 'heartbeat':
+                results_hb.append(results_model)
+            elif cfg['type'] == 'full':
+                results_full.append(results_model)
+        except Exception as e:
+            print(f"Some kind of error: {e}\n Skipping analysis for {cfg['name']}")
 
-    with open("./results.json", "w") as f:
-        json.dump(results, f, indent=2)
+
+    with open("./results_hb.json", "w") as f:
+        json.dump(results_hb, f, indent=2)
+
+    with open("./results_full.json", "w") as f:
+        json.dump(results_full, f, indent=2)
