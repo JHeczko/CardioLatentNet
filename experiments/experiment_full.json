@@ -129,11 +129,11 @@
     "trainer_cfg": {
       "lr": 0.0001,
       "weight_decay": 0.0001,
-      "accumulation_step": 6,
+      "accumulation_step": 32,
       "early_stopper_patience": 20,
       "checkpoint_dir": "full_transformer_baseline"
     },
-    "batch_sizes": {"train": 16, "val": 128},
+    "batch_sizes": {"train": 4, "val": 128},
     "type": "full_ecg",
     "resume_training": false
   },
@@ -155,11 +155,11 @@
       "lr": 0.00008,
       "weight_decay": 0.0001,
       "warmup_iters": 6000,
-      "accumulation_step": 8,
+      "accumulation_step": 32,
       "early_stopper_patience": 20,
       "checkpoint_dir": "full_transformer_deep"
     },
-    "batch_sizes": {"train": 16, "val": 128},
+    "batch_sizes": {"train": 4, "val": 128},
     "type": "full_ecg",
     "resume_training": false
   },
@@ -182,11 +182,11 @@
       "weight_decay": 0.0001,
       "warmup_iters": 8000,
       "max_iters": 200000,
-      "accumulation_step": 16,
+      "accumulation_step": 32,
       "early_stopper_patience": 20,
       "checkpoint_dir": "full_transformer_big_deep"
     },
-    "batch_sizes": {"train": 8, "val": 128},
+    "batch_sizes": {"train": 4, "val": 128},
     "type": "full_ecg",
     "resume_training": false
   },
@@ -208,11 +208,11 @@
       "lr": 0.00008,
       "weight_decay": 0.0001,
       "warmup_iters": 6000,
-      "accumulation_step": 16,
+      "accumulation_step": 32,
       "early_stopper_patience": 20,
       "checkpoint_dir": "full_transformer_more_att"
     },
-    "batch_sizes": {"train": 8, "val": 128},
+    "batch_sizes": {"train": 4, "val": 128},
     "type": "full_ecg",
     "resume_training": false
   }

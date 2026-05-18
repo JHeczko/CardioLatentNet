@@ -200,6 +200,7 @@ class TransformerAecTrainer:
         avg_loss = sum(losses) / len(losses)
         print(f"[EVAL] Recon Loss: {avg_loss:.4f}")
 
+        torch.cuda.empty_cache()
         return avg_loss
 
     @torch.no_grad()
@@ -291,6 +292,12 @@ class TransformerAecTrainer:
         for step in range(self.start_step, self.config.max_iters + 1):
 
             metrics = self.train_step(step)
+
+            # ==== benchmark
+            allocated = torch.cuda.memory_allocated() / 1024 ** 2
+            reserved = torch.cuda.memory_reserved() / 1024 ** 2
+            print(f"[MEM] Allocated: {allocated:.0f}MB | Reserved: {reserved:.0f}MB")
+            # ==== to del
 
             if step % self.accumulation_step == 0:
                 self.history.append(metrics)

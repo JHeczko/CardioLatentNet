@@ -197,6 +197,7 @@ class LstmVaeTrainer:
             "lr": lr
         }
 
+        del x, x_hat, loss, recon_loss, reg_loss, mu, logvar
         return metrics
 
     # ========================
@@ -232,6 +233,7 @@ class LstmVaeTrainer:
         avg_loss = sum(losses) / len(losses)
         print(f"[EVAL] Loss(mmd + recon): {avg_loss:.4f}")
 
+        torch.cuda.empty_cache()
         return avg_loss
 
     @torch.no_grad()
@@ -320,6 +322,11 @@ class LstmVaeTrainer:
         for step in range(self.start_step, self.config.max_iters + 1):
 
             metrics = self.train_step(step)
+            # ==== benchmark
+            allocated = torch.cuda.memory_allocated() / 1024 ** 2
+            reserved = torch.cuda.memory_reserved() / 1024 ** 2
+            print(f"[MEM] Allocated: {allocated:.0f}MB | Reserved: {reserved:.0f}MB")
+            # ==== to del
             self.history.append(metrics)
 
             if step % self.config.log_every == 0:

@@ -197,6 +197,7 @@ class CnnAecTrainer:
         avg_loss = sum(losses) / len(losses)
         print(f"[EVAL] Recon Loss: {avg_loss:.4f}")
 
+        torch.cuda.empty_cache()
         return avg_loss
 
     @torch.no_grad()
