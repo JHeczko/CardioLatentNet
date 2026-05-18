@@ -315,8 +315,8 @@ if __name__ == "__main__":
             print(f"Some kind of error: {e}\n Skipping analysis for {cfg['name']}")
 
 
-    with open("./results_hb.json", "w") as f:
+    with open(os.path.join("plots","./results_hb.json", "w")) as f:
         json.dump(results_hb, f, indent=2)
 
-    with open("./results_full.json", "w") as f:
+    with open(os.path.join("plots","./results_full.json", "w")) as f:
         json.dump(results_full, f, indent=2)
