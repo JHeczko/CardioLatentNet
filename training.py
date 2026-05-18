@@ -41,6 +41,9 @@ TRAINER_CFG_REGISTRY = {
 }
 
 def run_training(train_ds, val_ds, test_ds, model_cls, trainer_cls, model_cfg, trainer_cfg, batch_sizes, resume_training=False):
+    torch.cuda.empty_cache()
+    gc.collect()
+
     try:
         cpu_cores = os.cpu_count() or 4
         num_workers = max(2, cpu_cores)
@@ -162,9 +165,11 @@ if __name__ == '__main__':
 
     print("Done")
 
-    configs = load_configs("configs_per_heartbeat.json", checkpoints_heartbeat_path)
-    configs += load_configs("configs_per_heartbeat_plus.json", checkpoints_heartbeat_path)
-    configs += load_configs("configs_full_ecg.json", checkpoints_full_path)
+    configs = []
+
+    #configs += load_configs("./experiments/experiment_heartbeat.json", checkpoints_heartbeat_path)
+    configs += load_configs("experiments/experiment_heartbeat2.json", checkpoints_heartbeat_path)
+    configs += load_configs("./experiments/experiment_full.json", checkpoints_full_path)
 
     for i,cfg in enumerate(configs):
 

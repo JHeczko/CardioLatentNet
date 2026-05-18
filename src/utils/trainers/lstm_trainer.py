@@ -323,12 +323,12 @@ class LstmVaeTrainer:
 
             metrics = self.train_step(step)
             # ==== benchmark
-            print(
-                "alloc:",
-                torch.cuda.memory_allocated() / 1024 ** 3,
-                "reserved:",
-                torch.cuda.memory_reserved() / 1024 ** 3
-            )
+            # print(
+            #     "alloc:",
+            #     torch.cuda.memory_allocated() / 1024 ** 3,
+            #     "reserved:",
+            #     torch.cuda.memory_reserved() / 1024 ** 3
+            # )
             # ==== to del
             self.history.append(metrics)
 

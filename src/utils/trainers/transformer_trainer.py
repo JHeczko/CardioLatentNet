@@ -295,12 +295,12 @@ class TransformerAecTrainer:
 
             metrics = self.train_step(step)
 
-            print(
-                "alloc:",
-                torch.cuda.memory_allocated() / 1024 ** 3,
-                "reserved:",
-                torch.cuda.memory_reserved() / 1024 ** 3
-            )
+            # print(
+            #     "alloc:",
+            #     torch.cuda.memory_allocated() / 1024 ** 3,
+            #     "reserved:",
+            #     torch.cuda.memory_reserved() / 1024 ** 3
+            # )
 
             if step % self.accumulation_step == 0:
                 self.history.append(metrics)

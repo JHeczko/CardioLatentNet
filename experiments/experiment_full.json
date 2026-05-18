@@ -17,7 +17,7 @@
       "early_stopper_patience": 15,
       "checkpoint_dir": "full_cnn_deep"
     },
-    "batch_sizes": {"train": 128, "val": 512},
+    "batch_sizes": {"train": 96, "val": 512},
     "type": "full_ecg",
     "resume_training": false
   },
@@ -39,7 +39,7 @@
       "early_stopper_patience": 15,
       "checkpoint_dir": "full_cnn_deeper"
     },
-    "batch_sizes": {"train": 128, "val": 512},
+    "batch_sizes": {"train": 96, "val": 512},
     "type": "full_ecg",
     "resume_training": false
   },
@@ -59,7 +59,7 @@
       "early_stopper_patience": 20,
       "checkpoint_dir": "full_lstm_deep"
     },
-    "batch_sizes": {"train": 64, "val": 256},
+    "batch_sizes": {"train": 48, "val": 256},
     "type": "full_ecg",
     "resume_training": false
   },
@@ -120,7 +120,38 @@
       "seq_len": 1000,
       "input_dim": 12,
       "blocks": 4,
-      "enc_dec_ratio": [2, 2],
+      "enc_dec_ratio": [2, 1],
+      "num_att_heads": 8,
+      "hidden_dim": 256,
+      "latent_dim": 64,
+      "dropout": 0.2,
+      "gradient_checkpointing": true
+    },
+    "trainer_cfg": {
+      "lr": 0.0001,
+      "weight_decay": 0.0001,
+      "warmup_iters": 6000,
+      "accumulation_step": 32,
+      "early_stopper_patience": 25,
+      "checkpoint_every": 1000,
+      "checkpoint_dir": "full_transformer_baseline"
+    },
+    "batch_sizes": {
+      "train": 2,
+      "val": 32
+    },
+    "type": "full_ecg",
+    "resume_training": false
+  },
+  {
+    "name": "FULL-TRANSFORMER-latent128",
+    "model_cls": "TransformerAec",
+    "trainer_cls": "TransformerAecTrainer",
+    "model_cfg": {
+      "seq_len": 1000,
+      "input_dim": 12,
+      "blocks": 4,
+      "enc_dec_ratio": [2, 1],
       "hidden_dim": 256,
       "num_att_heads": 8,
       "latent_dim": 128,
@@ -129,11 +160,42 @@
     "trainer_cfg": {
       "lr": 0.0001,
       "weight_decay": 0.0001,
+      "accumulation_step": 64,
+      "early_stopper_patience": 20,
+      "checkpoint_dir": "full_transformer_latent128"
+    },
+    "batch_sizes": {"train": 2, "val": 64},
+    "type": "full_ecg",
+    "resume_training": false
+  },
+  {
+    "name": "FULL-TRANSFORMER-latent-256",
+    "model_cls": "TransformerAec",
+    "trainer_cls": "TransformerAecTrainer",
+    "model_cfg": {
+      "seq_len": 1000,
+      "input_dim": 12,
+      "blocks": 5,
+      "enc_dec_ratio": [2, 1],
+      "num_att_heads": 8,
+      "hidden_dim": 384,
+      "latent_dim": 256,
+      "dropout": 0.25,
+      "gradient_checkpointing": true
+    },
+    "trainer_cfg": {
+      "lr": 0.00008,
+      "weight_decay": 0.0001,
+      "warmup_iters": 10000,
       "accumulation_step": 32,
       "early_stopper_patience": 20,
-      "checkpoint_dir": "full_transformer_baseline"
+      "checkpoint_every": 1000,
+      "checkpoint_dir": "full_transformer_latent256"
     },
-    "batch_sizes": {"train": 4, "val": 128},
+    "batch_sizes": {
+      "train": 2,
+      "val": 16
+    },
     "type": "full_ecg",
     "resume_training": false
   },
@@ -145,7 +207,7 @@
       "seq_len": 1000,
       "input_dim": 12,
       "blocks": 6,
-      "enc_dec_ratio": [2, 2],
+      "enc_dec_ratio": [2, 1],
       "hidden_dim": 256,
       "num_att_heads": 8,
       "latent_dim": 128,
@@ -155,11 +217,11 @@
       "lr": 0.00008,
       "weight_decay": 0.0001,
       "warmup_iters": 6000,
-      "accumulation_step": 32,
+      "accumulation_step": 64,
       "early_stopper_patience": 20,
       "checkpoint_dir": "full_transformer_deep"
     },
-    "batch_sizes": {"train": 4, "val": 128},
+    "batch_sizes": {"train": 2, "val": 64},
     "type": "full_ecg",
     "resume_training": false
   },
@@ -171,7 +233,7 @@
       "seq_len": 1000,
       "input_dim": 12,
       "blocks": 6,
-      "enc_dec_ratio": [3, 3],
+      "enc_dec_ratio": [3, 2],
       "hidden_dim": 512,
       "num_att_heads": 8,
       "latent_dim": 256,
@@ -182,11 +244,11 @@
       "weight_decay": 0.0001,
       "warmup_iters": 8000,
       "max_iters": 200000,
-      "accumulation_step": 32,
+      "accumulation_step": 128,
       "early_stopper_patience": 20,
       "checkpoint_dir": "full_transformer_big_deep"
     },
-    "batch_sizes": {"train": 4, "val": 128},
+    "batch_sizes": {"train": 1, "val": 64},
     "type": "full_ecg",
     "resume_training": false
   },
@@ -198,7 +260,7 @@
       "seq_len": 1000,
       "input_dim": 12,
       "blocks": 5,
-      "enc_dec_ratio": [2, 2],
+      "enc_dec_ratio": [2, 1],
       "hidden_dim": 384,
       "num_att_heads": 12,
       "latent_dim": 192,
@@ -208,11 +270,42 @@
       "lr": 0.00008,
       "weight_decay": 0.0001,
       "warmup_iters": 6000,
-      "accumulation_step": 32,
+      "accumulation_step": 128,
       "early_stopper_patience": 20,
       "checkpoint_dir": "full_transformer_more_att"
     },
-    "batch_sizes": {"train": 4, "val": 128},
+    "batch_sizes": {"train": 1, "val": 64},
+    "type": "full_ecg",
+    "resume_training": false
+  },
+  {
+    "name": "FULL-TRANSFORMER-wide",
+    "model_cls": "TransformerAec",
+    "trainer_cls": "TransformerAecTrainer",
+    "model_cfg": {
+      "seq_len": 1000,
+      "input_dim": 12,
+      "blocks": 4,
+      "enc_dec_ratio": [3, 2],
+      "num_att_heads": 8,
+      "hidden_dim": 384,
+      "latent_dim": 128,
+      "dropout": 0.2,
+      "gradient_checkpointing": true
+    },
+    "trainer_cfg": {
+      "lr": 0.00008,
+      "weight_decay": 0.0001,
+      "warmup_iters": 8000,
+      "accumulation_step": 64,
+      "early_stopper_patience": 30,
+      "checkpoint_every": 1000,
+      "checkpoint_dir": "full_transformer_wide"
+    },
+    "batch_sizes": {
+      "train": 1,
+      "val": 16
+    },
     "type": "full_ecg",
     "resume_training": false
   }
