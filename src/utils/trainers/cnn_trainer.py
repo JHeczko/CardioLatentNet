@@ -167,6 +167,8 @@ class CnnAecTrainer:
             "lr": lr
         }
 
+
+        del x, x_hat, loss
         return metrics
 
     # ========================
@@ -288,6 +290,13 @@ class CnnAecTrainer:
 
             metrics = self.train_step(step)
             self.history.append(metrics)
+
+            print(
+                "alloc:",
+                torch.cuda.memory_allocated() / 1024 ** 3,
+                "reserved:",
+                torch.cuda.memory_reserved() / 1024 ** 3
+            )
 
             if step % self.config.log_every == 0:
                 print(

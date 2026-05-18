@@ -141,7 +141,7 @@ class TransformerAecTrainer:
         ):
             with torch.backends.cuda.sdp_kernel(
                     enable_flash=True,
-                    enable_math=True,
+                    enable_math=False,
                     enable_mem_efficient=True
             ):
                 x_hat = self.model(x)
@@ -289,15 +289,18 @@ class TransformerAecTrainer:
     # Train loop
     # ========================
     def train(self):
+        self.optimizer.zero_grad(set_to_none=True)
+
         for step in range(self.start_step, self.config.max_iters + 1):
 
             metrics = self.train_step(step)
 
-            # ==== benchmark
-            allocated = torch.cuda.memory_allocated() / 1024 ** 2
-            reserved = torch.cuda.memory_reserved() / 1024 ** 2
-            print(f"[MEM] Allocated: {allocated:.0f}MB | Reserved: {reserved:.0f}MB")
-            # ==== to del
+            print(
+                "alloc:",
+                torch.cuda.memory_allocated() / 1024 ** 3,
+                "reserved:",
+                torch.cuda.memory_reserved() / 1024 ** 3
+            )
 
             if step % self.accumulation_step == 0:
                 self.history.append(metrics)
