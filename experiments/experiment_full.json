@@ -1,0 +1,219 @@
+[
+  {
+    "name": "FULL-CNN-deep",
+    "model_cls": "CnnAec",
+    "trainer_cls": "CnnAecTrainer",
+    "model_cfg": {
+      "seq_len": 1000,
+      "input_dim": 12,
+      "hidden_channels": 128,
+      "latent_dim": 128,
+      "blocks": 5,
+      "enc_dec_ratio": [2, 2],
+      "dropout": 0.2
+    },
+    "trainer_cfg": {
+      "lr": 0.0008,
+      "early_stopper_patience": 15,
+      "checkpoint_dir": "full_cnn_deep"
+    },
+    "batch_sizes": {"train": 128, "val": 512},
+    "type": "full_ecg",
+    "resume_training": false
+  },
+  {
+    "name": "FULL-CNN-deeper",
+    "model_cls": "CnnAec",
+    "trainer_cls": "CnnAecTrainer",
+    "model_cfg": {
+      "seq_len": 1000,
+      "input_dim": 12,
+      "hidden_channels": 192,
+      "latent_dim": 128,
+      "blocks": 6,
+      "enc_dec_ratio": [2, 2],
+      "dropout": 0.2
+    },
+    "trainer_cfg": {
+      "lr": 0.0008,
+      "early_stopper_patience": 15,
+      "checkpoint_dir": "full_cnn_deeper"
+    },
+    "batch_sizes": {"train": 128, "val": 512},
+    "type": "full_ecg",
+    "resume_training": false
+  },
+  {
+    "name": "FULL-LSTM-deep",
+    "model_cls": "LstmVae",
+    "trainer_cls": "LstmVaeTrainer",
+    "model_cfg": {
+      "seq_len": 1000,
+      "ecg_channels": 12,
+      "blocks": 5
+    },
+    "trainer_cfg": {
+      "lr": 0.0001,
+      "warmup_iters": 5000,
+      "mmd_weight": 0.2,
+      "early_stopper_patience": 20,
+      "checkpoint_dir": "full_lstm_deep"
+    },
+    "batch_sizes": {"train": 64, "val": 256},
+    "type": "full_ecg",
+    "resume_training": false
+  },
+  {
+    "name": "FULL-LSTM-big",
+    "model_cls": "LstmVae",
+    "trainer_cls": "LstmVaeTrainer",
+    "model_cfg": {
+      "seq_len": 1000,
+      "ecg_channels": 12,
+      "blocks": 5,
+      "latent_dim": 192,
+      "starting_channel_size": 96,
+      "dropout": 0.3
+    },
+    "trainer_cfg": {
+      "lr": 0.00008,
+      "warmup_iters": 8000,
+      "max_iters": 150000,
+      "mmd_weight": 0.2,
+      "early_stopper_patience": 20,
+      "checkpoint_dir": "full_lstm_big"
+    },
+    "batch_sizes": {"train": 48, "val": 256},
+    "type": "full_ecg",
+    "resume_training": false
+  },
+  {
+    "name": "FULL-LSTM-big-ratio",
+    "model_cls": "LstmVae",
+    "trainer_cls": "LstmVaeTrainer",
+    "model_cfg": {
+      "seq_len": 1000,
+      "ecg_channels": 12,
+      "blocks": 5,
+      "enc_dec_ratio": [2, 2],
+      "latent_dim": 192,
+      "starting_channel_size": 96,
+      "dropout": 0.3
+    },
+    "trainer_cfg": {
+      "lr": 0.00008,
+      "warmup_iters": 8000,
+      "max_iters": 150000,
+      "mmd_weight": 0.2,
+      "early_stopper_patience": 20,
+      "checkpoint_dir": "full_lstm_big_ratio"
+    },
+    "batch_sizes": {"train": 48, "val": 256},
+    "type": "full_ecg",
+    "resume_training": false
+  },
+  {
+    "name": "FULL-TRANSFORMER-baseline",
+    "model_cls": "TransformerAec",
+    "trainer_cls": "TransformerAecTrainer",
+    "model_cfg": {
+      "seq_len": 1000,
+      "input_dim": 12,
+      "blocks": 4,
+      "enc_dec_ratio": [2, 2],
+      "hidden_dim": 256,
+      "num_att_heads": 8,
+      "latent_dim": 128,
+      "dropout": 0.2
+    },
+    "trainer_cfg": {
+      "lr": 0.0001,
+      "weight_decay": 0.0001,
+      "accumulation_step": 6,
+      "early_stopper_patience": 20,
+      "checkpoint_dir": "full_transformer_baseline"
+    },
+    "batch_sizes": {"train": 16, "val": 128},
+    "type": "full_ecg",
+    "resume_training": false
+  },
+  {
+    "name": "FULL-TRANSFORMER-deep",
+    "model_cls": "TransformerAec",
+    "trainer_cls": "TransformerAecTrainer",
+    "model_cfg": {
+      "seq_len": 1000,
+      "input_dim": 12,
+      "blocks": 6,
+      "enc_dec_ratio": [2, 2],
+      "hidden_dim": 256,
+      "num_att_heads": 8,
+      "latent_dim": 128,
+      "dropout": 0.2
+    },
+    "trainer_cfg": {
+      "lr": 0.00008,
+      "weight_decay": 0.0001,
+      "warmup_iters": 6000,
+      "accumulation_step": 8,
+      "early_stopper_patience": 20,
+      "checkpoint_dir": "full_transformer_deep"
+    },
+    "batch_sizes": {"train": 16, "val": 128},
+    "type": "full_ecg",
+    "resume_training": false
+  },
+  {
+    "name": "FULL-TRANSFORMER-big-deep",
+    "model_cls": "TransformerAec",
+    "trainer_cls": "TransformerAecTrainer",
+    "model_cfg": {
+      "seq_len": 1000,
+      "input_dim": 12,
+      "blocks": 6,
+      "enc_dec_ratio": [3, 3],
+      "hidden_dim": 512,
+      "num_att_heads": 8,
+      "latent_dim": 256,
+      "dropout": 0.25
+    },
+    "trainer_cfg": {
+      "lr": 0.00008,
+      "weight_decay": 0.0001,
+      "warmup_iters": 8000,
+      "max_iters": 200000,
+      "accumulation_step": 16,
+      "early_stopper_patience": 20,
+      "checkpoint_dir": "full_transformer_big_deep"
+    },
+    "batch_sizes": {"train": 8, "val": 128},
+    "type": "full_ecg",
+    "resume_training": false
+  },
+  {
+    "name": "FULL-TRANSFORMER-more-att",
+    "model_cls": "TransformerAec",
+    "trainer_cls": "TransformerAecTrainer",
+    "model_cfg": {
+      "seq_len": 1000,
+      "input_dim": 12,
+      "blocks": 5,
+      "enc_dec_ratio": [2, 2],
+      "hidden_dim": 384,
+      "num_att_heads": 12,
+      "latent_dim": 192,
+      "dropout": 0.2
+    },
+    "trainer_cfg": {
+      "lr": 0.00008,
+      "weight_decay": 0.0001,
+      "warmup_iters": 6000,
+      "accumulation_step": 16,
+      "early_stopper_patience": 20,
+      "checkpoint_dir": "full_transformer_more_att"
+    },
+    "batch_sizes": {"train": 8, "val": 128},
+    "type": "full_ecg",
+    "resume_training": false
+  }
+]
