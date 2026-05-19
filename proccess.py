@@ -214,7 +214,7 @@ def _run_analysis(model, run_name, plots_dir, test_loader, device):
 def process_model(config, test_loader):
     run_name = config["name"]
     type = config["type"]
-    plots_dir = os.path.join("plots", type, run_name)
+    plots_dir = os.path.join("results", type, run_name)
     os.makedirs(plots_dir, exist_ok=True)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -315,8 +315,8 @@ if __name__ == "__main__":
             print(f"Some kind of error: {e}\n Skipping analysis for {cfg['name']}")
 
 
-    with open(os.path.join("plots","./results_hb.json", "w")) as f:
+    with open(os.path.join("results", "./results_hb.json", "w")) as f:
         json.dump(results_hb, f, indent=2)
 
-    with open(os.path.join("plots","./results_full.json", "w")) as f:
+    with open(os.path.join("results", "./results_full.json", "w")) as f:
         json.dump(results_full, f, indent=2)

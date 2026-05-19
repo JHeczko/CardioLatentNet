@@ -25,7 +25,7 @@ def plot_training_history(train_history, val_history, model_title = "", path=Non
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 5))
     plt.style.use('seaborn-v0_8-darkgrid')
 
-    # 1. Training metrics plot (plots all found keys dynamically)
+    # 1. Training metrics plot (results all found keys dynamically)
     for metric in metrics:
         values = [d[metric] for d in train_history]
         ax1.plot(steps, values, label=metric.replace('_', ' ').capitalize(), linewidth=2)

@@ -479,5 +479,5 @@ dataset/*
 checkpoints_*/
 checkpoints/
 *.png
-plots/
+results/
 # =-=-=-=-=-=-=-=-=-= END Custom User Section =-=-=-=-=-=-=-=-=-=
