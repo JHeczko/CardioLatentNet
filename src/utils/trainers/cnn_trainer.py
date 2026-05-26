@@ -21,6 +21,7 @@ class CnnAecTrainer:
             torch.backends.cudnn.benchmark = True
         else:
             self.device = torch.device("cpu")
+        print(f"[INFO] Training on {self.device.type}")
 
         self.model.to(self.device)
         self.model = torch.compile(self.model)

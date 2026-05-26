@@ -18,6 +18,7 @@ class TransformerAecTrainer:
             config.device if torch.cuda.is_available() else "cpu"
         )
         self.model.to(self.device)
+        print(f"[INFO] Training on {self.device.type}")
 
         # optimizer
         self.optimizer = torch.optim.AdamW(

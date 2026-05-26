@@ -23,6 +23,7 @@ class LstmVaeTrainer:
         else:
             self.device = torch.device("cpu")
         self.model.to(self.device)
+        print(f"[INFO] Training on {self.device.type}")
 
         # optimizer
         self.optimizer = torch.optim.AdamW(
