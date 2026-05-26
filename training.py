@@ -134,6 +134,11 @@ def load_configs(path: str, checkpoints_base: str):
     return configs
 
 if __name__ == '__main__':
+    # CUDA CHECKING
+    print("Czy CUDA jest dostępna: ", torch.cuda.is_available())
+    print("Liczba dostępnych GPU: ", torch.cuda.device_count())
+    print("Wersja CUDA: ", torch.version.cuda)
+
     checkpoints_base = "./checkpoints"
 
     checkpoints_full_path = os.path.join(checkpoints_base, "./checkpoints_full")
@@ -168,7 +173,7 @@ if __name__ == '__main__':
     configs = []
 
     #configs += load_configs("./experiments/experiment_heartbeat.json", checkpoints_heartbeat_path)
-    configs += load_configs("experiments/experiment_heartbeat2.json", checkpoints_heartbeat_path)
+    #configs += load_configs("./experiments/experiment_heartbeat2.json", checkpoints_heartbeat_path)
     configs += load_configs("./experiments/experiment_full.json", checkpoints_full_path)
 
     for i,cfg in enumerate(configs):
