@@ -14,7 +14,7 @@ from sklearn.cluster import KMeans
 
 from src.utils.trainers import CnnAecTrainer, LstmVaeTrainer, TransformerAecTrainer
 from src.visualize import plot_training_history, visualize_latents
-from src.data import Hearbeat_ECG_DataSet
+from src.data import Hearbeat_ECG_DataSet, Full_ECG_DataSet
 from src.utils.config.trainer import LstmTrainerConfig, TransformerTrainerConfig, CnnTrainerConfig
 from src.utils.config.model import LstmVaeConfig, TransformerAecConfig, CnnAecConfig
 from src import TransformerAec, LstmVae, CnnAec
@@ -286,7 +286,9 @@ if __name__ == "__main__":
 
     print("Loading dataset...\n", end=' ')
     test_ds = Hearbeat_ECG_DataSet(path=ds_path, mode="test")
+    test_ds_full = Full_ECG_DataSet(path=ds_path, mode="test")
     test_loader = DataLoader(test_ds, batch_size=128, shuffle=False)
+    test_loader_full = DataLoader(test_ds_full, batch_size=64, shuffle=False)
     print("Done")
 
     checkpoints_path = "./checkpoints"
@@ -306,10 +308,12 @@ if __name__ == "__main__":
         print(f"Przetwarzanie modelu: {cfg['name']}")
         print(f"======================================")
         try:
-            results_model = process_model(cfg, test_loader)
+            results_model = None
             if cfg['type'] == 'heartbeat':
+                results_model = process_model(cfg, test_loader)
                 results_hb.append(results_model)
             elif cfg['type'] == 'full':
+                results_model = process_model(cfg, test_loader_full)
                 results_full.append(results_model)
         except Exception as e:
             print(f"Some kind of error: {e}\n Skipping analysis for {cfg['name']}")
