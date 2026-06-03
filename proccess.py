@@ -68,9 +68,9 @@ def load_configs(path: str, checkpoints_base: str):
         trainer_cls_name = item["trainer_cls"]
 
         # podmień checkpoint_dir na absolutny
-        item["trainer_cfg"]["checkpoint_dir"] = os.path.join(
+        item["trainer_cfg"]["checkpoint_dir"] = os.path.normpath(os.path.join(
             checkpoints_base, item["trainer_cfg"]["checkpoint_dir"]
-        )
+        ))
 
         configs.append({
             "name": item["name"],
