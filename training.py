@@ -99,7 +99,7 @@ def save_experiment_config(cfg, checkpoint_dir):
         )
     }
 
-    path = os.path.join(checkpoint_dir, "experiment_config.json")
+    path = os.path.normpath(os.path.join(checkpoint_dir, "experiment_config.json"))
 
     with open(path, "w") as f:
         json.dump(config_dump, f, indent=4)
@@ -115,10 +115,9 @@ def load_configs(path: str, checkpoints_base: str):
         model_cls_name = item["model_cls"]
         trainer_cls_name = item["trainer_cls"]
 
-        # podmień checkpoint_dir na absolutny
-        item["trainer_cfg"]["checkpoint_dir"] = os.path.join(
+        item["trainer_cfg"]["checkpoint_dir"] = os.path.normpath(os.path.join(
             checkpoints_base, item["trainer_cfg"]["checkpoint_dir"]
-        )
+        ))
 
         configs.append({
             "name": item["name"],
@@ -134,25 +133,24 @@ def load_configs(path: str, checkpoints_base: str):
     return configs
 
 if __name__ == '__main__':
-    # CUDA CHECKING
     print("Czy CUDA jest dostępna: ", torch.cuda.is_available())
     print("Liczba dostępnych GPU: ", torch.cuda.device_count())
     print("Wersja CUDA: ", torch.version.cuda)
 
-    checkpoints_base = "./checkpoints"
+    checkpoints_base = os.path.normpath("./checkpoints")
 
-    checkpoints_full_path = os.path.join(checkpoints_base, "./checkpoints_full")
-    checkpoints_heartbeat_path = os.path.join(checkpoints_base, "./checkpoints_heartbeat")
+    checkpoints_full_path = os.path.normpath(os.path.join(checkpoints_base, "checkpoints_full"))
+    checkpoints_heartbeat_path = os.path.normpath(os.path.join(checkpoints_base, "checkpoints_heartbeat"))
 
     os.makedirs(checkpoints_heartbeat_path, exist_ok=True)
     os.makedirs(checkpoints_full_path, exist_ok=True)
 
     print("=====\nDownloading dataset...")
     path = kagglehub.dataset_download("khyeh0719/ptb-xl-dataset")
-    print(f"Done! Path is = {os.path.join(path, "ptb-xl-a-large-publicly-available-electrocardiography-dataset-1.0.1")}")
+    print(f"Done! Path is = {os.path.normpath(os.path.join(path, 'ptb-xl-a-large-publicly-available-electrocardiography-dataset-1.0.1'))}")
 
-    ds_path = os.path.join(path, "ptb-xl-a-large-publicly-available-electrocardiography-dataset-1.0.1")
-    test_ds_path = "./dataset/ptb_xl_test/"
+    ds_path = os.path.normpath(os.path.join(path, "ptb-xl-a-large-publicly-available-electrocardiography-dataset-1.0.1"))
+    test_ds_path = os.path.normpath("./dataset/ptb_xl_test/")
 
     print("\n\n=====\nLoading dataset...\n", end=' ')
     train_heartbeat_ds = Hearbeat_ECG_DataSet(path=ds_path, mode='train')
@@ -178,7 +176,6 @@ if __name__ == '__main__':
 
     for i,cfg in enumerate(configs):
 
-        # dataSet selection
         if cfg['type'] not in ds_map:
             raise TypeError(f"Unknown ds type: {cfg['type']}")
         train_ds, val_ds, test_ds = ds_map[cfg['type']]

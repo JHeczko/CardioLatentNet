@@ -67,7 +67,6 @@ def load_configs(path: str, checkpoints_base: str):
         model_cls_name = item["model_cls"]
         trainer_cls_name = item["trainer_cls"]
 
-        # podmień checkpoint_dir na absolutny
         item["trainer_cfg"]["checkpoint_dir"] = os.path.normpath(os.path.join(
             checkpoints_base, item["trainer_cfg"]["checkpoint_dir"]
         ))
@@ -94,13 +93,12 @@ def evaluate_latent_quality(latent_np, n_clusters=18):
     silhouette = silhouette_score(latent_np, cluster_labels, sample_size=10_000)
     davies_bouldin = davies_bouldin_score(latent_np, cluster_labels)
 
-    # aktywne wymiary — ile dims ma std > próg
     stds = latent_np.std(axis=0)
     active_dims = int((stds > 0.1).sum())
 
     return {
-        "silhouette": round(silhouette, 4),      # wyższy = lepszy, max 1.0
-        "davies_bouldin": round(davies_bouldin, 4),  # niższy = lepszy
+        "silhouette": round(silhouette, 4),
+        "davies_bouldin": round(davies_bouldin, 4),
         "active_dims": active_dims,
     }
 
@@ -172,7 +170,7 @@ def _run_analysis(model, run_name, plots_dir, test_loader, device):
 
     if latents is not None:
         latent = torch.cat(latents, dim=0)
-        torch.save(latent.detach().cpu(), os.path.join(plots_dir, f"{run_name}_latents.pt"))
+        torch.save(latent.detach().cpu(), os.path.normpath(os.path.join(plots_dir, f"{run_name}_latents.pt")))
         latent_metrics = evaluate_latent_quality(latent.numpy())
 
         for method in ('umap', 'tsne', 'pca'):
@@ -180,7 +178,7 @@ def _run_analysis(model, run_name, plots_dir, test_loader, device):
                 latent, y,
                 model_title=run_name,
                 method=method,
-                path=os.path.join(plots_dir, f"{run_name}_latent_{method}.png"),
+                path=os.path.normpath(os.path.join(plots_dir, f"{run_name}_latent_{method}.png")),
             )
         latent_mean = latent.mean().item()
         latent_std = latent.std(dim=0).mean().item()
@@ -204,8 +202,7 @@ def _run_analysis(model, run_name, plots_dir, test_loader, device):
         lines.append(f"Active Dimensions                         : {latent_metrics['active_dims']}")
 
         output = "\n".join(lines)
-        # ===== ZAPIS DO PLIKU =====
-        log_path = os.path.join(plots_dir, f"{run_name}_results.txt")
+        log_path = os.path.normpath(os.path.join(plots_dir, f"{run_name}_results.txt"))
         with open(log_path, "w") as f:
             f.write(output)
 
@@ -214,23 +211,21 @@ def _run_analysis(model, run_name, plots_dir, test_loader, device):
 def process_model(config, test_loader):
     run_name = config["name"]
     type = config["type"]
-    plots_dir = os.path.join("results", type, run_name)
+    plots_dir = os.path.normpath(os.path.join("results", type, run_name))
     os.makedirs(plots_dir, exist_ok=True)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    # Rozpakowujemy config
     model_cls = config["model_cls"]
     model_cfg = config["model_cfg"]
     trainer_cfg = config["trainer_cfg"]
 
     ckpt_dir = trainer_cfg.checkpoint_dir
-    prefix = get_model_prefix(model_cls)  # np. 'lstm', 'cnn'
+    prefix = get_model_prefix(model_cls)
 
-    hist_path = os.path.join(ckpt_dir, f"{prefix}_history.json")
-    hist_val_path = os.path.join(ckpt_dir, f"{prefix}_history_val.json")
+    hist_path = os.path.normpath(os.path.join(ckpt_dir, f"{prefix}_history.json"))
+    hist_val_path = os.path.normpath(os.path.join(ckpt_dir, f"{prefix}_history_val.json"))
 
-    # ===== LOAD HISTORY =====
     try:
         with open(hist_path, 'r') as f:
             history = json.load(f)
@@ -241,20 +236,19 @@ def process_model(config, test_loader):
             history,
             history_val,
             model_title=run_name,
-            path=os.path.join(plots_dir, f"{run_name}_history.png"),
+            path=os.path.normpath(os.path.join(plots_dir, f"{run_name}_history.png")),
         )
     except FileNotFoundError as e:
         print(f"[WARNING] ⚠️ Nie znaleziono plików historii dla {run_name}: {e}")
 
-    # ===== ANALIZUJEMY OBA CHECKPOINTY =====
     checkpoints_to_eval = [
-        (f"{prefix}_model.pt", run_name),  # Ostatni model
-        (f"{prefix}_best.pt", f"{run_name}_Best"),  # Najlepszy model
+        (f"{prefix}_model.pt", run_name),
+        (f"{prefix}_best.pt", f"{run_name}_Best"),
     ]
 
     results = []
     for ckpt_file, eval_name in checkpoints_to_eval:
-        ckpt_path = os.path.join(ckpt_dir, ckpt_file)
+        ckpt_path = os.path.normpath(os.path.join(ckpt_dir, ckpt_file))
 
         if not os.path.exists(ckpt_path):
             print(f"[WARNING] ⚠️ Checkpoint nie istnieje, pomijam ewaluację: {ckpt_path}")
@@ -279,10 +273,10 @@ if __name__ == "__main__":
 
     print("Downloading dataset...", end=" ")
     path = kagglehub.dataset_download("khyeh0719/ptb-xl-dataset")
-    print(f"Done! Path is = {os.path.join(path, "ptb-xl-a-large-publicly-available-electrocardiography-dataset-1.0.1")}")
+    print(f"Done! Path is = {os.path.normpath(os.path.join(path, 'ptb-xl-a-large-publicly-available-electrocardiography-dataset-1.0.1'))}")
 
-    ds_path = os.path.join(path, "ptb-xl-a-large-publicly-available-electrocardiography-dataset-1.0.1")
-    test_ds_path = "./dataset/ptb_xl_test/"
+    ds_path = os.path.normpath(os.path.join(path, "ptb-xl-a-large-publicly-available-electrocardiography-dataset-1.0.1"))
+    test_ds_path = os.path.normpath("./dataset/ptb_xl_test/")
 
     print("Loading dataset...\n", end=' ')
     test_ds = Hearbeat_ECG_DataSet(path=ds_path, mode="test")
@@ -291,9 +285,9 @@ if __name__ == "__main__":
     test_loader_full = DataLoader(test_ds_full, batch_size=64, shuffle=False)
     print("Done")
 
-    checkpoints_path = "./checkpoints"
-    checkpoints_full_path = os.path.join(checkpoints_path, "./checkpoints_full")
-    checkpoints_heartbeat_path = os.path.join(checkpoints_path, "./checkpoints_heartbeat")
+    checkpoints_path = os.path.normpath("./checkpoints")
+    checkpoints_full_path = os.path.normpath(os.path.join(checkpoints_path, "checkpoints_full"))
+    checkpoints_heartbeat_path = os.path.normpath(os.path.join(checkpoints_path, "checkpoints_heartbeat"))
 
     configs = []
 
@@ -319,8 +313,9 @@ if __name__ == "__main__":
             print(f"Some kind of error: {e}\n Skipping analysis for {cfg['name']}")
 
 
-    with open(os.path.join("results", "./results_hb.json", "w")) as f:
+    os.makedirs("./results", exist_ok=True)
+    with open(os.path.normpath(os.path.join("results", "results_hb.json")), "w") as f:
         json.dump(results_hb, f, indent=2)
 
-    with open(os.path.join("results", "./results_full.json", "w")) as f:
+    with open(os.path.normpath(os.path.join("results", "results_full.json")), "w") as f:
         json.dump(results_full, f, indent=2)
