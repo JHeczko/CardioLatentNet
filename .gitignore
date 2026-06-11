@@ -479,5 +479,6 @@ dataset/*
 checkpoints_*/
 checkpoints/
 *.png
-results/
+results/full_ecg
+results/heartbeat
 # =-=-=-=-=-=-=-=-=-= END Custom User Section =-=-=-=-=-=-=-=-=-=

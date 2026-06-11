@@ -1,8 +1,7 @@
 import json
 import os
-import pickle
 import warnings
-
+import re
 
 import kagglehub
 
@@ -257,10 +256,13 @@ def process_model(config, test_loader):
         m = model_cls(config=model_cfg).to(device)
         m.eval()
 
+        # ====== CHECKPOINT REPAIR ======
+        # fixing compiled cnn and lstm changes in architecture
         state_dict = torch.load(ckpt_path, map_location=device)
         if any(k.startswith("_orig_mod.") for k in state_dict.keys()):
             state_dict = {k.replace("_orig_mod.", ""): v for k, v in state_dict.items()}
         m.load_state_dict(state_dict)
+        # ====== CHECKPOINT REPAIR ======
 
         result = _run_analysis(m, eval_name, plots_dir, test_loader, device)
         results.append(result)
@@ -291,9 +293,10 @@ if __name__ == "__main__":
 
     configs = []
 
-    configs += load_configs("./experiments/experiment_heartbeat.json", checkpoints_heartbeat_path)
-    configs += load_configs("./experiments/experiment_heartbeat2.json", checkpoints_heartbeat_path)
-    configs += load_configs("./experiments/experiment_full.json", checkpoints_full_path)
+    #configs += load_configs("./experiments/experiment_heartbeat.json", checkpoints_heartbeat_path)
+    #configs += load_configs("./experiments/experiment_heartbeat2.json", checkpoints_heartbeat_path)
+    #configs += load_configs("./experiments/experiment_full.json", checkpoints_full_path)
+    configs += load_configs("./experiments/exp_only_lstm.json", checkpoints_heartbeat_path)
 
     results_hb = []
     results_full = []
@@ -306,7 +309,7 @@ if __name__ == "__main__":
             if cfg['type'] == 'heartbeat':
                 results_model = process_model(cfg, test_loader)
                 results_hb.append(results_model)
-            elif cfg['type'] == 'full':
+            elif cfg['type'] in ('full', "full_ecg"):
                 results_model = process_model(cfg, test_loader_full)
                 results_full.append(results_model)
         except Exception as e:

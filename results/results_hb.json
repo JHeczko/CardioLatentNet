@@ -1,0 +1,686 @@
+[
+  [
+    {
+      "name": "CNN-HB-deeper",
+      "mse": 0.013966479186567328,
+      "mae": 0.06379800461363512,
+      "rmse": 0.11817985947938561,
+      "snr": 6.740288734436035,
+      "latent_mean": -0.0035795632284134626,
+      "latent_std": 1.2158350944519043,
+      "silhouette": 0.0635,
+      "davies_bouldin": 1.985,
+      "active_dims": 64
+    },
+    {
+      "name": "CNN-HB-deeper_Best",
+      "mse": 0.013966479186567328,
+      "mae": 0.06379800461363512,
+      "rmse": 0.11817985947938561,
+      "snr": 6.740288734436035,
+      "latent_mean": -0.0035795632284134626,
+      "latent_std": 1.2158350944519043,
+      "silhouette": 0.0607,
+      "davies_bouldin": 1.985,
+      "active_dims": 64
+    }
+  ],
+  [
+    {
+      "name": "CNN-HB-wide-latent",
+      "mse": 0.0029561182331317164,
+      "mae": 0.027769109038996913,
+      "rmse": 0.05437019618441446,
+      "snr": 13.483940362930298,
+      "latent_mean": 0.003355075605213642,
+      "latent_std": 1.6498684883117676,
+      "silhouette": 0.0453,
+      "davies_bouldin": 2.6634,
+      "active_dims": 128
+    },
+    {
+      "name": "CNN-HB-wide-latent_Best",
+      "mse": 0.002947668241030035,
+      "mae": 0.027577122553713522,
+      "rmse": 0.054292432631353284,
+      "snr": 13.496372699737549,
+      "latent_mean": 0.008354763500392437,
+      "latent_std": 1.6616766452789307,
+      "silhouette": 0.0436,
+      "davies_bouldin": 2.6609,
+      "active_dims": 128
+    }
+  ],
+  [
+    {
+      "name": "CNN-HB-deep-wide",
+      "mse": 0.012207426044739162,
+      "mae": 0.06256139363208166,
+      "rmse": 0.11048722118299094,
+      "snr": 7.324917316436768,
+      "latent_mean": -0.07691486179828644,
+      "latent_std": 22.899486541748047,
+      "silhouette": 0.0588,
+      "davies_bouldin": 1.8486,
+      "active_dims": 128
+    },
+    {
+      "name": "CNN-HB-deep-wide_Best",
+      "mse": 0.012157023613939597,
+      "mae": 0.06243750663355352,
+      "rmse": 0.11025889358205802,
+      "snr": 7.342885732650757,
+      "latent_mean": -0.1633678376674652,
+      "latent_std": 22.832117080688477,
+      "silhouette": 0.0582,
+      "davies_bouldin": 1.8622,
+      "active_dims": 128
+    }
+  ],
+  [
+    {
+      "name": "LSTM-VAE-HB-big-boy-deeper",
+      "mse": 0.01046036879600341,
+      "mae": 0.058483939358946316,
+      "rmse": 0.10227594436622627,
+      "snr": 7.995688319206238,
+      "latent_mean": -0.037428200244903564,
+      "latent_std": 1.8263877630233765,
+      "silhouette": 0.556,
+      "davies_bouldin": 2.0923,
+      "active_dims": 128
+    },
+    {
+      "name": "LSTM-VAE-HB-big-boy-deeper_Best",
+      "mse": 0.010570925907090908,
+      "mae": 0.05891448726827433,
+      "rmse": 0.10281500818018208,
+      "snr": 7.95002818107605,
+      "latent_mean": -0.04070913419127464,
+      "latent_std": 1.863939881324768,
+      "silhouette": 0.599,
+      "davies_bouldin": 2.1445,
+      "active_dims": 128
+    }
+  ],
+  [
+    {
+      "name": "LSTM-VAE-HB-big-high-reg",
+      "mse": 0.02492270511663893,
+      "mae": 0.0911347952941943,
+      "rmse": 0.15786926590264153,
+      "snr": 4.22520637512207,
+      "latent_mean": -0.029753834009170532,
+      "latent_std": 1.0428425073623657,
+      "silhouette": 0.0262,
+      "davies_bouldin": 2.2507,
+      "active_dims": 128
+    },
+    {
+      "name": "LSTM-VAE-HB-big-high-reg_Best",
+      "mse": 0.01888956393308457,
+      "mae": 0.07746160952771985,
+      "rmse": 0.1374393099993032,
+      "snr": 5.428938865661621,
+      "latent_mean": -0.007319457363337278,
+      "latent_std": 1.0523163080215454,
+      "silhouette": 0.0414,
+      "davies_bouldin": 2.0103,
+      "active_dims": 128
+    }
+  ],
+  [
+    {
+      "name": "LSTM-VAE-HB-big-wide-latent",
+      "mse": 0.00557821787883909,
+      "mae": 0.043586686598677024,
+      "rmse": 0.07468746801732597,
+      "snr": 10.726203918457031,
+      "latent_mean": 0.01271724235266447,
+      "latent_std": 1.8942159414291382,
+      "silhouette": 0.4811,
+      "davies_bouldin": 2.5328,
+      "active_dims": 192
+    },
+    {
+      "name": "LSTM-VAE-HB-big-wide-latent_Best",
+      "mse": 0.005460156900360266,
+      "mae": 0.04282071856343097,
+      "rmse": 0.0738928744897657,
+      "snr": 10.819107294082642,
+      "latent_mean": 0.002169016981497407,
+      "latent_std": 1.9344338178634644,
+      "silhouette": 0.4489,
+      "davies_bouldin": 2.5437,
+      "active_dims": 192
+    }
+  ],
+  [
+    {
+      "name": "LSTM-VAE-HB-ultra-deeper-wider-latent",
+      "mse": 0.011322764261245895,
+      "mae": 0.058834605063378745,
+      "rmse": 0.1064084783334763,
+      "snr": 7.651633620262146,
+      "latent_mean": -0.04546555131673813,
+      "latent_std": 1.4352799654006958,
+      "silhouette": 0.0227,
+      "davies_bouldin": 2.4927,
+      "active_dims": 192
+    },
+    {
+      "name": "LSTM-VAE-HB-ultra-deeper-wider-latent_Best",
+      "mse": 0.01152888929020137,
+      "mae": 0.05949507195113585,
+      "rmse": 0.10737266547032057,
+      "snr": 7.573283314704895,
+      "latent_mean": -0.051044292747974396,
+      "latent_std": 1.4675546884536743,
+      "silhouette": 0.4115,
+      "davies_bouldin": 2.1562,
+      "active_dims": 192
+    }
+  ],
+  [
+    {
+      "name": "LSTM-VAE-HB-deeper-high-reg",
+      "mse": 0.022334299010934207,
+      "mae": 0.08705973237266335,
+      "rmse": 0.14944664268873425,
+      "snr": 4.701434969902039,
+      "latent_mean": -0.005029986146837473,
+      "latent_std": 0.7106435894966125,
+      "silhouette": 0.0642,
+      "davies_bouldin": 1.8541,
+      "active_dims": 192
+    },
+    {
+      "name": "LSTM-VAE-HB-deeper-high-reg_Best",
+      "mse": 0.04715718747489861,
+      "mae": 0.11733925852137182,
+      "rmse": 0.2171570571611676,
+      "snr": 1.4556793868541718,
+      "latent_mean": -0.0009803969878703356,
+      "latent_std": 0.7851581573486328,
+      "silhouette": 0.0707,
+      "davies_bouldin": 2.3381,
+      "active_dims": 192
+    }
+  ],
+  [
+    {
+      "name": "CNN-baseline",
+      "mse": 0.004281717123163419,
+      "mae": 0.03364092358801352,
+      "rmse": 0.06543483111587757,
+      "snr": 11.87497854232788,
+      "latent_mean": -0.00024833346833474934,
+      "latent_std": 0.5521674156188965,
+      "silhouette": 0.0236,
+      "davies_bouldin": 2.8044,
+      "active_dims": 64
+    },
+    {
+      "name": "CNN-baseline_Best",
+      "mse": 0.0039325301264866485,
+      "mae": 0.031837714823711984,
+      "rmse": 0.06270988858614444,
+      "snr": 12.24443793296814,
+      "latent_mean": 0.00224495236761868,
+      "latent_std": 0.5547897815704346,
+      "silhouette": 0.0236,
+      "davies_bouldin": 2.7246,
+      "active_dims": 64
+    }
+  ],
+  [
+    {
+      "name": "CNN-fast&stable",
+      "mse": 0.003081563174508906,
+      "mae": 0.028314164868416154,
+      "rmse": 0.05551182914036346,
+      "snr": 13.303447961807251,
+      "latent_mean": -0.036338839679956436,
+      "latent_std": 0.498853862285614,
+      "silhouette": 0.0322,
+      "davies_bouldin": 2.607,
+      "active_dims": 64
+    },
+    {
+      "name": "CNN-fast&stable_Best",
+      "mse": 0.0030111861618206284,
+      "mae": 0.027936008121085477,
+      "rmse": 0.05487427595714251,
+      "snr": 13.403781652450562,
+      "latent_mean": -0.03554104268550873,
+      "latent_std": 0.5056346654891968,
+      "silhouette": 0.0298,
+      "davies_bouldin": 2.6365,
+      "active_dims": 64
+    }
+  ],
+  [
+    {
+      "name": "CNN-deep",
+      "mse": 0.012238902761176387,
+      "mae": 0.06076060682853421,
+      "rmse": 0.11062957453220358,
+      "snr": 7.313733696937561,
+      "latent_mean": 1.1431297063827515,
+      "latent_std": 19.584388732910156,
+      "silhouette": 0.0561,
+      "davies_bouldin": 2.3121,
+      "active_dims": 64
+    },
+    {
+      "name": "CNN-deep_Best",
+      "mse": 0.011668482125568196,
+      "mae": 0.05952826002607614,
+      "rmse": 0.10802074858826057,
+      "snr": 7.5210148096084595,
+      "latent_mean": 1.2537785768508911,
+      "latent_std": 21.08632469177246,
+      "silhouette": 0.0499,
+      "davies_bouldin": 2.3495,
+      "active_dims": 64
+    }
+  ],
+  [
+    {
+      "name": "CNN-hard-bottleneck",
+      "mse": 0.008720236934722127,
+      "mae": 0.05269995684931342,
+      "rmse": 0.0933822088768633,
+      "snr": 8.78587543964386,
+      "latent_mean": -0.08768271654844284,
+      "latent_std": 1.2215121984481812,
+      "silhouette": 0.0547,
+      "davies_bouldin": 2.1584,
+      "active_dims": 16
+    },
+    {
+      "name": "CNN-hard-bottleneck_Best",
+      "mse": 0.008142983804638288,
+      "mae": 0.050826782059579016,
+      "rmse": 0.09023848294734507,
+      "snr": 9.083322286605835,
+      "latent_mean": -0.08025655895471573,
+      "latent_std": 1.2477049827575684,
+      "silhouette": 0.0542,
+      "davies_bouldin": 2.1681,
+      "active_dims": 16
+    }
+  ],
+  [
+    {
+      "name": "TRANSFORMER-baseline",
+      "mse": 5.473809053245368e-05,
+      "mae": 0.004333014945657326,
+      "rmse": 0.00739851948246767,
+      "snr": 30.808262825012207,
+      "latent_mean": -0.18696150183677673,
+      "latent_std": 0.05413847044110298,
+      "silhouette": 0.0406,
+      "davies_bouldin": 2.2773,
+      "active_dims": 0
+    },
+    {
+      "name": "TRANSFORMER-baseline_Best",
+      "mse": 5.5194451488365764e-05,
+      "mae": 0.0043930160348070926,
+      "rmse": 0.007429296836738034,
+      "snr": 30.772204399108887,
+      "latent_mean": -0.1843101978302002,
+      "latent_std": 0.05574623495340347,
+      "silhouette": 0.0412,
+      "davies_bouldin": 2.3036,
+      "active_dims": 0
+    }
+  ],
+  [
+    {
+      "name": "TRANSFORMER-stable-baseline",
+      "mse": 0.0005987271274896241,
+      "mae": 0.010341274132533735,
+      "rmse": 0.02446890123175996,
+      "snr": 20.41886806488037,
+      "latent_mean": -0.16704139113426208,
+      "latent_std": 0.11601544916629791,
+      "silhouette": 0.0397,
+      "davies_bouldin": 2.0506,
+      "active_dims": 53
+    },
+    {
+      "name": "TRANSFORMER-stable-baseline_Best",
+      "mse": 0.0004240424116883881,
+      "mae": 0.010540452798418013,
+      "rmse": 0.020592290103055272,
+      "snr": 21.91706418991089,
+      "latent_mean": 0.03372509032487869,
+      "latent_std": 0.14344367384910583,
+      "silhouette": 0.0536,
+      "davies_bouldin": 2.0449,
+      "active_dims": 61
+    }
+  ],
+  [
+    {
+      "name": "TRANSFORMER-big-boy",
+      "mse": 8.396548443328313e-05,
+      "mae": 0.004400925425458024,
+      "rmse": 0.009163268217905833,
+      "snr": 28.95015001296997,
+      "latent_mean": -0.22898510098457336,
+      "latent_std": 0.3462245762348175,
+      "silhouette": 0.1022,
+      "davies_bouldin": 1.7496,
+      "active_dims": 128
+    },
+    {
+      "name": "TRANSFORMER-big-boy_Best",
+      "mse": 7.935149268837411e-05,
+      "mae": 0.004069808240012998,
+      "rmse": 0.008907945480770193,
+      "snr": 29.19560670852661,
+      "latent_mean": -0.20806001126766205,
+      "latent_std": 0.30217909812927246,
+      "silhouette": 0.0797,
+      "davies_bouldin": 1.8807,
+      "active_dims": 128
+    }
+  ],
+  [
+    {
+      "name": "TRANSFORMER-no-reg",
+      "mse": 3.1595942073208795e-05,
+      "mae": 0.003550349003154932,
+      "rmse": 0.005621026781043549,
+      "snr": 33.1948447227478,
+      "latent_mean": 0.13011039793491364,
+      "latent_std": 0.0750965029001236,
+      "silhouette": 0.0361,
+      "davies_bouldin": 2.4007,
+      "active_dims": 1
+    },
+    {
+      "name": "TRANSFORMER-no-reg_Best",
+      "mse": 3.140325675037193e-05,
+      "mae": 0.0033122375474141518,
+      "rmse": 0.005603860878927307,
+      "snr": 33.22141170501709,
+      "latent_mean": 0.13020917773246765,
+      "latent_std": 0.08051105588674545,
+      "silhouette": 0.0284,
+      "davies_bouldin": 2.4867,
+      "active_dims": 3
+    }
+  ],
+  [
+  {
+    "name": "LSTM_VAE_ver1",
+    "mse": 0.002942,
+    "mae": 0.029803,
+    "rmse": 0.054243,
+    "snr": 13.504326,
+    "latent_mean": 0.3429,
+    "latent_std": 8.4880,
+    "silhouette": 0.0399,
+    "davies_bouldin": 2.9398,
+    "active_dims": 128
+  },
+  {
+    "name": "LSTM-VAE-baseline_Best",
+    "mse": 0.005247,
+    "mae": 0.040099,
+    "rmse": 0.072438,
+    "snr": 10.991807,
+    "latent_mean": -0.0260,
+    "latent_std": 1.2039,
+    "silhouette": -0.0147,
+    "davies_bouldin": 3.0436,
+    "active_dims": 64
+  },
+  {
+    "name": "LSTM-VAE-baseline",
+    "mse": 0.005272,
+    "mae": 0.040164,
+    "rmse": 0.072609,
+    "snr": 10.971316,
+    "latent_mean": -0.0279,
+    "latent_std": 1.1978,
+    "silhouette": -0.0119,
+    "davies_bouldin": 3.0973,
+    "active_dims": 64
+  },
+  {
+    "name": "LSTM-VAE-baseline-pp_Best",
+    "mse": 0.001793,
+    "mae": 0.021003,
+    "rmse": 0.042346,
+    "snr": 15.654844,
+    "latent_mean": 0.7356,
+    "latent_std": 7.2678,
+    "silhouette": 0.0451,
+    "davies_bouldin": 2.8963,
+    "active_dims": 96
+  },
+  {
+    "name": "LSTM-VAE-baseline-pp",
+    "mse": 0.001806,
+    "mae": 0.021140,
+    "rmse": 0.042499,
+    "snr": 15.623680,
+    "latent_mean": 0.7367,
+    "latent_std": 7.2889,
+    "silhouette": 0.0443,
+    "davies_bouldin": 2.9076,
+    "active_dims": 96
+  },
+  {
+    "name": "LSTM-VAE-big-model_Best",
+    "mse": 0.004200,
+    "mae": 0.035088,
+    "rmse": 0.064807,
+    "snr": 11.958687,
+    "latent_mean": -0.0032,
+    "latent_std": 1.6287,
+    "silhouette": 0.3443,
+    "davies_bouldin": 2.2596,
+    "active_dims": 128
+  },
+  {
+    "name": "LSTM-VAE-big-model",
+    "mse": 0.004035,
+    "mae": 0.034449,
+    "rmse": 0.063520,
+    "snr": 12.132957,
+    "latent_mean": -0.0047,
+    "latent_std": 1.5594,
+    "silhouette": 0.3462,
+    "davies_bouldin": 2.4182,
+    "active_dims": 128
+  },
+  {
+    "name": "LSTM-VAE-regularized-latent_Best",
+    "mse": 0.010191,
+    "mae": 0.057036,
+    "rmse": 0.100950,
+    "snr": 8.108995,
+    "latent_mean": -0.0279,
+    "latent_std": 1.2182,
+    "silhouette": 0.0206,
+    "davies_bouldin": 2.4969,
+    "active_dims": 32
+  },
+  {
+    "name": "LSTM-VAE-regularized-latent",
+    "mse": 0.009887,
+    "mae": 0.056327,
+    "rmse": 0.099435,
+    "snr": 8.240396,
+    "latent_mean": -0.0423,
+    "latent_std": 1.2305,
+    "silhouette": 0.0151,
+    "davies_bouldin": 2.5277,
+    "active_dims": 32
+  },
+  {
+    "name": "LSTM-VAE-strong-latent_Best",
+    "mse": 0.002058,
+    "mae": 0.023059,
+    "rmse": 0.045366,
+    "snr": 15.056597,
+    "latent_mean": 1.2573,
+    "latent_std": 9.4654,
+    "silhouette": 0.0456,
+    "davies_bouldin": 2.8157,
+    "active_dims": 64
+  },
+  {
+    "name": "LSTM-VAE-strong-latent",
+    "mse": 0.001998,
+    "mae": 0.022565,
+    "rmse": 0.044704,
+    "snr": 15.184288,
+    "latent_mean": 1.2660,
+    "latent_std": 9.5000,
+    "silhouette": 0.0443,
+    "davies_bouldin": 2.7959,
+    "active_dims": 64
+  }
+  ],
+  [
+  {
+    "name": "LSTM_VAE_ver1",
+    "mse": 0.002942,
+    "mae": 0.029803,
+    "rmse": 0.054243,
+    "snr": 13.504326,
+    "latent_mean": 0.3429,
+    "latent_std": 8.4880,
+    "silhouette": 0.0399,
+    "davies_bouldin": 2.9398,
+    "active_dims": 128
+  },
+  {
+    "name": "LSTM-VAE-baseline_Best",
+    "mse": 0.005247,
+    "mae": 0.040099,
+    "rmse": 0.072438,
+    "snr": 10.991807,
+    "latent_mean": -0.0260,
+    "latent_std": 1.2039,
+    "silhouette": -0.0147,
+    "davies_bouldin": 3.0436,
+    "active_dims": 64
+  },
+  {
+    "name": "LSTM-VAE-baseline",
+    "mse": 0.005272,
+    "mae": 0.040164,
+    "rmse": 0.072609,
+    "snr": 10.971316,
+    "latent_mean": -0.0279,
+    "latent_std": 1.1978,
+    "silhouette": -0.0119,
+    "davies_bouldin": 3.0973,
+    "active_dims": 64
+  },
+  {
+    "name": "LSTM-VAE-baseline-pp_Best",
+    "mse": 0.001793,
+    "mae": 0.021003,
+    "rmse": 0.042346,
+    "snr": 15.654844,
+    "latent_mean": 0.7356,
+    "latent_std": 7.2678,
+    "silhouette": 0.0451,
+    "davies_bouldin": 2.8963,
+    "active_dims": 96
+  },
+  {
+    "name": "LSTM-VAE-baseline-pp",
+    "mse": 0.001806,
+    "mae": 0.021140,
+    "rmse": 0.042499,
+    "snr": 15.623680,
+    "latent_mean": 0.7367,
+    "latent_std": 7.2889,
+    "silhouette": 0.0443,
+    "davies_bouldin": 2.9076,
+    "active_dims": 96
+  },
+  {
+    "name": "LSTM-VAE-big-model_Best",
+    "mse": 0.004200,
+    "mae": 0.035088,
+    "rmse": 0.064807,
+    "snr": 11.958687,
+    "latent_mean": -0.0032,
+    "latent_std": 1.6287,
+    "silhouette": 0.3443,
+    "davies_bouldin": 2.2596,
+    "active_dims": 128
+  },
+  {
+    "name": "LSTM-VAE-big-model",
+    "mse": 0.004035,
+    "mae": 0.034449,
+    "rmse": 0.063520,
+    "snr": 12.132957,
+    "latent_mean": -0.0047,
+    "latent_std": 1.5594,
+    "silhouette": 0.3462,
+    "davies_bouldin": 2.4182,
+    "active_dims": 128
+  },
+  {
+    "name": "LSTM-VAE-regularized-latent_Best",
+    "mse": 0.010191,
+    "mae": 0.057036,
+    "rmse": 0.100950,
+    "snr": 8.108995,
+    "latent_mean": -0.0279,
+    "latent_std": 1.2182,
+    "silhouette": 0.0206,
+    "davies_bouldin": 2.4969,
+    "active_dims": 32
+  },
+  {
+    "name": "LSTM-VAE-regularized-latent",
+    "mse": 0.009887,
+    "mae": 0.056327,
+    "rmse": 0.099435,
+    "snr": 8.240396,
+    "latent_mean": -0.0423,
+    "latent_std": 1.2305,
+    "silhouette": 0.0151,
+    "davies_bouldin": 2.5277,
+    "active_dims": 32
+  },
+  {
+    "name": "LSTM-VAE-strong-latent_Best",
+    "mse": 0.002058,
+    "mae": 0.023059,
+    "rmse": 0.045366,
+    "snr": 15.056597,
+    "latent_mean": 1.2573,
+    "latent_std": 9.4654,
+    "silhouette": 0.0456,
+    "davies_bouldin": 2.8157,
+    "active_dims": 64
+  },
+  {
+    "name": "LSTM-VAE-strong-latent",
+    "mse": 0.001998,
+    "mae": 0.022565,
+    "rmse": 0.044704,
+    "snr": 15.184288,
+    "latent_mean": 1.2660,
+    "latent_std": 9.5000,
+    "silhouette": 0.0443,
+    "davies_bouldin": 2.7959,
+    "active_dims": 64
+  }
+]
+]
