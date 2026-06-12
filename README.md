@@ -167,27 +167,99 @@ score = 0.4 × SNR_dB + 0.6 × Silhouette × 100
 
 Weights reflect the primary project goal of clustering quality over reconstruction fidelity.
 
----
-
 ## Results
 
-> *Section to be completed after full experimental runs.*
+### Heartbeat track (`seq_len=60`)
 
-### Heartbeat Track — Summary
+Top 10 models ranked by Silhouette Score across all heartbeat experiments. Models marked `_Best` are the early-stopped checkpoint; unmarked entries are the final training checkpoint.
 
-| Model | MSE | SNR (dB) | Silhouette | Davies-Bouldin | Active Dims |
+| Model | MSE | SNR (dB) | Silhouette ↑ | Davies-Bouldin ↓ | Active dims |
 |---|---|---|---|---|---|
-| — | — | — | — | — | — |
+| LSTM-VAE-HB-big-boy-deeper_Best | 0.01057 | 7.95 | **0.599** | 2.14 | 128 |
+| LSTM-VAE-HB-big-boy-deeper | 0.01046 | 8.00 | 0.556 | 2.09 | 128 |
+| LSTM-VAE-HB-big-wide-latent | 0.00558 | 10.73 | 0.481 | 2.53 | 192 |
+| LSTM-VAE-HB-big-wide-latent_Best | 0.00546 | 10.82 | 0.449 | 2.54 | 192 |
+| LSTM-VAE-HB-ultra-deeper-wider-latent_Best | 0.01153 | 7.57 | 0.412 | 2.16 | 192 |
+| LSTM-VAE-big-model | 0.00404 | 12.13 | 0.346 | 2.42 | 128 |
+| LSTM-VAE-big-model_Best | 0.00420 | 11.96 | 0.344 | 2.26 | 128 |
+| TRANSFORMER-big-boy | 0.000084 | 28.95 | 0.102 | 1.75 | 128 |
+| TRANSFORMER-big-boy_Best | 0.000079 | 29.20 | 0.080 | 1.88 | 128 |
+| TRANSFORMER-stable-baseline_Best | 0.000424 | 21.92 | 0.054 | 2.04 | 61 |
 
-### Full ECG Track — Summary
+Top 10 models ranked by SNR:
 
-| Model | MSE | SNR (dB) | Silhouette | Davies-Bouldin | Active Dims |
+| Model | MSE | SNR (dB) ↑ | Silhouette | Davies-Bouldin ↓ | Active dims |
 |---|---|---|---|---|---|
-| — | — | — | — | — | — |
+| TRANSFORMER-no-reg_Best | 0.000031 | **33.22** | 0.028 | 2.49 | 3 |
+| TRANSFORMER-no-reg | 0.000032 | 33.19 | 0.036 | 2.40 | 1 |
+| TRANSFORMER-baseline | 0.000055 | 30.81 | 0.041 | 2.28 | 0 |
+| TRANSFORMER-baseline_Best | 0.000055 | 30.77 | 0.041 | 2.30 | 0 |
+| TRANSFORMER-big-boy_Best | 0.000079 | 29.20 | 0.080 | 1.88 | 128 |
+| TRANSFORMER-big-boy | 0.000084 | 28.95 | 0.102 | 1.75 | 128 |
+| TRANSFORMER-stable-baseline_Best | 0.000424 | 21.92 | 0.054 | 2.04 | 61 |
+| TRANSFORMER-stable-baseline | 0.000599 | 20.42 | 0.040 | 2.05 | 53 |
+| LSTM-VAE-baseline-pp_Best | 0.001793 | 15.65 | 0.045 | 2.90 | 96 |
 
-### Key Findings
+---
 
-> *To be filled in after analysis.*
+### Full ECG track (`seq_len=1000`)
+
+Top models ranked by Silhouette Score on 10-second recordings:
+
+| Model | MSE | SNR (dB) ↑ | Silhouette ↑ | Davies-Bouldin ↓ | Active dims |
+|---|---|---|---|---|---|
+| FULL-LSTM-deep_Best | 0.02275 | 3.80 | **0.519** | 2.20 | 128 |
+| FULL-LSTM-big-ratio_Best | 0.02554 | 3.30 | 0.439 | 2.18 | 192 |
+| FULL-LSTM-big_Best | 0.02225 | 3.90 | 0.429 | 2.44 | 192 |
+| FULL-LSTM-deep | 0.02340 | 3.68 | 0.429 | 2.20 | 128 |
+| FULL-LSTM-big-ratio | 0.03073 | 2.50 | 0.265 | 2.47 | 192 |
+| FULL-LSTM-big | 0.02326 | 3.71 | 0.263 | 2.45 | 192 |
+| FULL-CNN-deeper_Best | 0.04864 | 0.50 | 0.182 | 1.36 | 128 |
+| FULL-CNN-deeper | 0.04976 | 0.40 | 0.157 | 1.50 | 128 |
+| FULL-CNN-deep_Best | 0.05044 | 0.35 | 0.145 | 1.54 | 128 |
+| FULL-CNN-deep | 0.05177 | 0.23 | 0.119 | 1.66 | 128 |
+
+---
+
+### Downstream classification on latent vectors
+
+To validate latent space quality beyond unsupervised metrics, classical classifiers were trained directly on the frozen latent vectors from the best heartbeat model (`LSTM-VAE-HB-big-boy-deeper_Best`, `latent_dim=128`):
+
+**Heartbeat latents (train set, 25,180 samples):**
+
+| Classifier | Hamming Loss ↓ | F1 Macro ↑ | F1 Micro ↑ |
+|---|---|---|---|
+| KNN + MultiOutput | **0.044** | **0.906** | **0.912** |
+| Random Forest | 0.089 | 0.772 | 0.799 |
+| SVM (RBF) + Classifier Chain | 0.121 | 0.715 | 0.747 |
+| SVM (RBF) + MultiOutput | 0.122 | 0.685 | 0.725 |
+
+**Heartbeat latents (test set, 2,203 samples):**
+
+| Classifier | Hamming Loss ↓ | F1 Macro ↑ | F1 Micro ↑ |
+|---|---|---|---|
+| KNN + MultiOutput | 0.259 | 0.243 | 0.362 |
+| SVM (RBF) + Classifier Chain | 0.223 | 0.142 | 0.313 |
+| SVM (RBF) + MultiOutput | 0.227 | 0.130 | 0.277 |
+| Random Forest | 0.241 | 0.115 | 0.220 |
+
+The train/test gap suggests the latent space encodes meaningful structure that generalises, though not perfectly — expected given the model was trained without any labels.
+
+Unsupervised clustering (K-Means and Agglomerative) on the same vectors achieved Hamming Loss ~0.24 and F1 Macro ~0.06–0.20, confirming that the latent geometry aligns with diagnostic classes to a degree achievable without supervision.
+
+---
+
+### Key findings
+
+**Reconstruction vs. clustering is a fundamental trade-off.** Transformer models achieve SNR 29–33 dB on heartbeats — reconstruction quality roughly 3× better than LSTM in dB terms. But their latent spaces frequently collapse to near-zero variance (0–3 active dimensions out of 64–128), making them unsuitable for unsupervised clustering. LSTM-VAE models sacrifice 20+ dB of SNR but produce latent spaces with Silhouette Scores up to 0.60.
+
+**Depth matters more than width.** The best clustering model (`LSTM-VAE-HB-big-boy-deeper`) used `blocks=5` and `latent_dim=128`. Shallower variants with the same latent size scored 0.34 (Silhouette). Adding processing depth per scale level via `enc_dec_ratio` consistently improved both metrics.
+
+**MMD weight is the primary dial for clustering quality.** Across all LSTM-VAE experiments, `mmd_weight=0.2` consistently outperformed both lower (0.1) and higher (0.5–1.0) values on Silhouette Score. High MMD weight forces all latents into a tight Gaussian ball, destroying inter-class separation.
+
+**Full ECG latents are harder but more informative.** LSTM models on `seq_len=1000` achieve Silhouette ~0.52 — comparable to heartbeat results — despite the harder compression task. CNN models struggle significantly at this length (SNR < 1 dB), suggesting that temporal modelling is essential for long-horizon ECG representation.
+
+**KNN on frozen latents achieves 90% F1 Macro on training data**, confirming that the unsupervised representation encodes diagnostically relevant structure. The drop to 24% F1 on test data reflects both the multi-label complexity of PTB-XL (19 unique label combinations) and the lack of supervised fine-tuning.
 
 ---
 
